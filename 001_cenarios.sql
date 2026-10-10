@@ -1,0 +1,40 @@
+-- Rodar no SQL Editor de um projeto de TESTE. Termina com erro proposital (rollback): "TESTES OK" = passou.
+do $$ declare u uuid:=gen_random_uuid(); ed uuid; c uuid; la uuid; pa uuid; v uuid; op uuid:=gen_random_uuid(); pl jsonb; r uuid;
+ rc uuid; r2 uuid; pl2 jsonb; begin
+ insert into acesso_autorizado values(u);
+ perform set_config('request.jwt.claims',json_build_object('sub',u)::text,true); perform set_config('request.jwt.claim.sub',u::text,true);
+ insert into edicoes(titulo,preco_sugerido_centavos) values('TESTE',3000) returning id into ed;
+ insert into pessoas(nome) values('T_Ana') returning id into pa;
+ insert into locais(tipo,nome,pessoa_id) values('pessoa','T_Ana',pa) returning id into la;
+ insert into locais(tipo,nome) values('central','T_Central') returning id into c;
+ perform mover_estoque(jsonb_build_object('op_id',gen_random_uuid(),'tipo','entrada','edicao_id',ed,'destino_id',c,'qtd',100));
+ perform mover_estoque(jsonb_build_object('op_id',gen_random_uuid(),'tipo','distribuicao','edicao_id',ed,'origem_id',c,'destino_id',la,'qtd',20));
+ assert (select saldo from v_saldos where edicao_id=ed and local_id=c)=80, 'cenário 1: central 80';
+ pl:=jsonb_build_object('op_id',op,'responsavel_id',pa,'canal','feira','itens',jsonb_build_array(jsonb_build_object('edicao_id',ed,'origem_id',la,'qtd',5,'preco_centavos',3000)),
+  'recebimentos',jsonb_build_array(jsonb_build_object('valor_centavos',15000,'meio','pix','destino','pessoa','pessoa_id',pa)));
+ v:=registrar_venda(pl); assert registrar_venda(pl)=v, 'reenvio SEQUENCIAL idempotente (concorrência real: tests/concorrencia.sh)';
+ assert (select count(*) from vendas where op_id=op)=1, 'sem duplicar venda';
+ perform registrar_repasse(jsonb_build_object('op_id',gen_random_uuid(),'pessoa_id',pa,'valor_centavos',10000));
+ select id into r from repasses where pessoa_id=pa;
+ assert (select recebido-repassado from v_financeiro_pessoa where pessoa_id=pa)=5000, 'cenário 2: R$50 a repassar';
+ assert (select saldo from v_saldos where edicao_id=ed and local_id=la)=15, 'cenário 2: Ana com 15';
+ assert (select produtos from v_vendas_resumo where id=v)=15000, 'cenário 2: vendas R$150';
+ begin perform registrar_repasse(jsonb_build_object('op_id',gen_random_uuid(),'pessoa_id',pa,'valor_centavos',6000)); assert false,'repasse excedente aceito';
+ exception when others then if sqlerrm not like 'valor acima%' then raise; end if; end;
+ begin perform desfazer_venda(jsonb_build_object('venda_id',v,'dinheiro_devolvido',true)); assert false,'desfez venda já repassada';
+ exception when others then if sqlerrm not like 'Parte desse valor%' then raise; end if; end;
+ perform desfazer_repasse(r); perform desfazer_repasse(r);
+ assert (select recebido-repassado from v_financeiro_pessoa where pessoa_id=pa)=15000, 'cenário 8: desfazer restaura uma vez';
+ begin perform registrar_venda(jsonb_set(pl,'{op_id}',to_jsonb(gen_random_uuid()::text))||jsonb_build_object('itens',jsonb_build_array(jsonb_build_object('edicao_id',ed,'origem_id',la,'qtd',99,'preco_centavos',3000))));
+  assert false,'vendeu sem saldo'; exception when others then if sqlerrm not like 'saldo insuficiente%' then raise; end if; end;
+ begin perform desfazer_venda(jsonb_build_object('venda_id',v)); assert false,'cancelou venda paga sem devolução'; exception when others then if sqlerrm not like 'Venda paga%' then raise; end if; end;
+ select id into rc from recebimentos where venda_id=v and not estornado;
+ perform estornar_recebimento(jsonb_build_object('recebimento_id',rc,'dinheiro_devolvido',true)); perform estornar_recebimento(jsonb_build_object('recebimento_id',rc,'dinheiro_devolvido',true));
+ assert (select produtos+frete-recebido from v_vendas_resumo where id=v)=15000, 'estorno isolado: pendência volta';
+ pl2:=jsonb_build_object('op_id',gen_random_uuid(),'venda_id',v,'valor_centavos',15000,'meio','pix','destino','pessoa','pessoa_id',pa);
+ r2:=registrar_recebimento(pl2); assert registrar_recebimento(pl2)=r2, 'recebimento idempotente';
+ begin perform registrar_recebimento(jsonb_set(pl2,'{valor_centavos}','1000')); assert false,'op_id reutilizado com outro valor'; exception when others then if sqlerrm not like 'op_id já usado%' then raise; end if; end;
+ perform desfazer_venda(jsonb_build_object('venda_id',v,'devolver_estoque',true,'dinheiro_devolvido',true));
+ assert (select saldo from v_saldos where edicao_id=ed and local_id=la)=20, 'cenário 10: estoque devolvido';
+ raise exception 'TESTES OK (rollback intencional)';
+end $$;
