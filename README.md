@@ -65,4 +65,4 @@ Legenda: **NT** implementado, não testado · **T** testado · **—** não impl
 | Teste de concorrência real (mesmo op_id; último exemplar) | `tests/concorrencia.sh` | escrito, não executado |
 | Cenários 3, 4, 5, 6, 9, 11, 12; testes de CSV e de interface | — | — |
 | RLS e acesso só do UID autorizado | 001 | NT |
-| Rotas por URL, dados de demonstração, logo oficial | — (logo: texto "Encrenca", trocar `.logo` em `App.tsx`) | — |
+| Rotas por URL, dados de demonstração, logo oficial | — (logo: texto "Encrenca", trocar `.logo` em `App.tsx`) | — | 
