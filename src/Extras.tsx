@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from './supabase'
 import { useEnvio, Aviso } from './envio'
 
-type Row = Record<string, any>; 
+type Row = Record<string, any>
 type Dados = Record<string, Row[]>
 const cents = (s: string) => Math.round(parseFloat(s.replace(',', '.')) * 100)
 
@@ -40,6 +40,13 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [ed, setEd] = useState({ titulo: '', numero: '', preco: '', proprietario_id: '' })
   const [pe, setPe] = useState('')
   const [ev, setEv] = useState({ nome: '', data: '' })
+  const [produtosEvSelecionados, setProdutosEvSelecionados] = useState<string[]>([])
+  const [eventoEmEdicao, setEventoEmEdicao] = useState<string | null>(null)
+  
+  // Estado para criar produto rápido direto no evento
+  const [mostrarNovoProdRapido, setMostrarNovoProdRapido] = useState(false)
+  const [prodRapido, setProdRapido] = useState({ titulo: '', preco: '', proprietario_id: '' })
+
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState('')
 
@@ -62,6 +69,37 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
     }), () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '' }))
   }
 
+  // Função para criar o produto rápido inline sem fechar a criação do evento
+  const criarProdutoRapidoInline = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!prodRapido.titulo) return
+
+    try {
+      const { data, error } = await supabase!
+        .from('edicoes')
+        .insert({
+          titulo: prodRapido.titulo,
+          preco_sugerido_centavos: prodRapido.preco ? cents(prodRapido.preco) : 0,
+          proprietario_id: prodRapido.proprietario_id || null
+        })
+        .select('id')
+        .single()
+
+      if (error) {
+        setErro(error.message)
+      } else if (data) {
+        // Marca automaticamente o novo produto para o evento atual
+        setProdutosEvSelecionados(prev => [...prev, data.id])
+        setProdRapido({ titulo: '', preco: '', proprietario_id: '' })
+        setMostrarNovoProdRapido(false)
+        setOk('Produto criado e adicionado ao evento!')
+        onOk()
+      }
+    } catch {
+      setErro('Erro ao salvar produto.')
+    }
+  }
+
   const novaPe = (e: React.FormEvent) => {
     e.preventDefault()
     run(async () => {
@@ -76,8 +114,26 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
     run(async () => {
       const r = await supabase!.from('eventos').insert({ nome: ev.nome, data: ev.data || null }).select('id').single()
       if (r.error) return r
-      return supabase!.from('locais').insert({ tipo: 'evento', nome: 'Estoque: ' + ev.nome, evento_id: r.data.id })
-    }, () => setEv({ nome: '', data: '' }))
+      
+      const eventoId = r.data.id
+      await supabase!.from('locais').insert({ tipo: 'evento', nome: 'Estoque: ' + ev.nome, evento_id: eventoId })
+
+      if (produtosEvSelecionados.length > 0) {
+        const payload = produtosEvSelecionados.map(edicao_id => ({ evento_id: eventoId, edicao_id }))
+        await supabase!.from('evento_produtos').insert(payload)
+      }
+
+      return { error: null }
+    }, () => {
+      setEv({ nome: '', data: '' })
+      setProdutosEvSelecionados([])
+    })
+  }
+
+  const toggleProdutoCriacao = (edicaoId: string) => {
+    setProdutosEvSelecionados(prev =>
+      prev.includes(edicaoId) ? prev.filter(id => id !== edicaoId) : [...prev, edicaoId]
+    )
   }
 
   const sv = (t: string, id: string, mk: (v: Record<string, string>) => Row, filho?: (v: Record<string, string>) => PromiseLike<{ error: any }>) => async (v: Record<string, string>) => {
@@ -135,49 +191,141 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       })}
     </ul>
 
+    {/* Form de Criação de Evento com Seleção e Criação Rápida de Produtos */}
     <form onSubmit={novoEv}>
-      <h2>Nova feira/evento</h2>
+      <h2>Nova feira / evento</h2>
       <label>Nome<input value={ev.nome} onChange={e => setEv({ ...ev, nome: e.target.value })} required /></label>
       <label>Data<input type="date" value={ev.data} onChange={e => setEv({ ...ev, data: e.target.value })} /></label>
-      <button>Salvar evento</button>
-    </form>
 
-    <h3>Vincular Produtos aos Eventos</h3>
-    {d.eventos?.map(evItem => (
-      <div key={evItem.id} style={{ border: '1px solid #ddd', padding: '10px', marginBottom: '10px', borderRadius: '6px' }}>
-        <strong>{evItem.nome}</strong> ({evItem.data ?? 'Sem data'})
-        <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {d.edicoes?.filter(x => x.ativa !== false).map(ed => {
-            const vinculado = d.evento_produtos?.some(ep => ep.evento_id === evItem.id && ep.edicao_id === ed.id)
-            const dono = d.pessoas?.find(p => p.id === ed.proprietario_id)?.nome
+      <div style={{ margin: '15px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <label style={{ fontWeight: 'bold', margin: 0 }}>Produtos presentes neste evento:</label>
+          <button 
+            type="button" 
+            onClick={() => setMostrarNovoProdRapido(!mostrarNovoProdRapido)}
+            style={{ background: '#2B6CB0', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}
+          >
+            {mostrarNovoProdRapido ? 'Cancelar Novo Produto' : '＋ Criar produto novo agora'}
+          </button>
+        </div>
+
+        {/* Formulário Rápido Inline para Criar Produto sem Sair do Evento */}
+        {mostrarNovoProdRapido && (
+          <div style={{ background: '#F7FAFC', border: '1px solid #CBD5E0', padding: '12px', borderRadius: '6px', marginBottom: '12px' }}>
+            <h4 style={{ margin: '0 0 8px 0' }}>Novo produto para o sistema</h4>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <input 
+                placeholder="Nome/Título do produto" 
+                value={prodRapido.titulo} 
+                onChange={e => setProdRapido({ ...prodRapido, titulo: e.target.value })} 
+                required 
+              />
+              <input 
+                placeholder="Preço (R$)" 
+                inputMode="decimal" 
+                value={prodRapido.preco} 
+                onChange={e => setProdRapido({ ...prodRapido, preco: e.target.value })} 
+              />
+              <select 
+                value={prodRapido.proprietario_id} 
+                onChange={e => setProdRapido({ ...prodRapido, proprietario_id: e.target.value })}
+              >
+                <option value="">Coletivo (Produto padrão)</option>
+                {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+              <button type="button" onClick={criarProdutoRapidoInline} style={{ background: '#38A169', color: '#FFF' }}>
+                Salvar Produto e Incluir no Evento
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Seleção dos Produtos com Botões */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {d.edicoes?.filter(x => x.ativa !== false).map(edItem => {
+            const marcado = produtosEvSelecionados.includes(edItem.id)
+            const dono = d.pessoas?.find(p => p.id === edItem.proprietario_id)?.nome
             return (
               <button
-                key={ed.id}
+                key={edItem.id}
                 type="button"
-                onClick={async () => {
-                  if (vinculado) {
-                    await supabase!.from('evento_produtos').delete().eq('evento_id', evItem.id).eq('edicao_id', ed.id)
-                  } else {
-                    await supabase!.from('evento_produtos').insert({ evento_id: evItem.id, edicao_id: ed.id })
-                  }
-                  onOk()
-                }}
+                onClick={() => toggleProdutoCriacao(edItem.id)}
                 style={{
-                  background: vinculado ? '#2B6CB0' : '#E2E8F0',
-                  color: vinculado ? '#FFF' : '#2D3748',
+                  background: marcado ? '#2B6CB0' : '#E2E8F0',
+                  color: marcado ? '#FFF' : '#2D3748',
                   border: 'none',
                   padding: '6px 12px',
                   borderRadius: '4px',
                   cursor: 'pointer'
                 }}
               >
-                {vinculado ? '✓ ' : '+ '} {ed.titulo} {dono ? `(${dono})` : '(Coletivo)'}
+                {marcado ? '✓ ' : '+ '} {edItem.titulo} {dono ? `(${dono})` : '(Coletivo)'}
               </button>
             )
           })}
         </div>
       </div>
-    ))}
+
+      <button>Salvar evento</button>
+    </form>
+
+    {/* Lista de Eventos Cadastrados */}
+    <h3>Eventos Cadastrados</h3>
+    <ul style={{ listStyle: 'none', padding: 0 }}>
+      {d.eventos?.map(x => {
+        const estaEditando = eventoEmEdicao === x.id
+        return (
+          <li key={x.id} style={{ border: '1px solid #E2E8F0', padding: '12px', marginBottom: '10px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <strong>{x.nome}</strong> {x.data ? `— ${x.data}` : ''}
+              </div>
+              <button type="button" onClick={() => setEventoEmEdicao(estaEditando ? null : x.id)}>
+                {estaEditando ? 'Fechar Edição' : 'Editar Produtos do Evento'}
+              </button>
+            </div>
+
+            {estaEditando && (
+              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #CBD5E0' }}>
+                <p style={{ fontSize: '14px', margin: '0 0 8px 0', fontWeight: 'bold' }}>
+                  Clique para adicionar (+) ou remover (✓) produtos deste evento:
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {d.edicoes?.filter(e => e.ativa !== false).map(edItem => {
+                    const vinculado = d.evento_produtos?.some(ep => ep.evento_id === x.id && ep.edicao_id === edItem.id)
+                    const dono = d.pessoas?.find(p => p.id === edItem.proprietario_id)?.nome
+                    return (
+                      <button
+                        key={edItem.id}
+                        type="button"
+                        onClick={async () => {
+                          if (vinculado) {
+                            await supabase!.from('evento_produtos').delete().eq('evento_id', x.id).eq('edicao_id', edItem.id)
+                          } else {
+                            await supabase!.from('evento_produtos').insert({ evento_id: x.id, edicao_id: edItem.id })
+                          }
+                          onOk()
+                        }}
+                        style={{
+                          background: vinculado ? '#2B6CB0' : '#EDF2F7',
+                          color: vinculado ? '#FFF' : '#2D3748',
+                          border: '1px solid #CBD5E0',
+                          padding: '6px 10px',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {vinculado ? '✓ ' : '+ '} {edItem.titulo} {dono ? `(${dono})` : ''}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </li>
+        )
+      })}
+    </ul>
 
     <form onSubmit={novaPe}>
       <h2>Nova pessoa</h2>
@@ -194,16 +342,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
             {x.ativa ? 'Desativar' : 'Reativar'}
           </button>{' '}
           <EditarLinha campos={[{ k: 'nome', label: 'Nome', v: x.nome }]} salvar={sv('pessoas', x.id, v => ({ nome: v.nome }), v => supabase!.from('locais').update({ nome: v.nome }).eq('pessoa_id', x.id))} />
-        </li>
-      ))}
-    </ul>
-
-    <h3>Eventos</h3>
-    <ul>
-      {d.eventos?.map(x => (
-        <li key={x.id}>
-          {x.nome} {x.data ?? ''}{' '}
-          <EditarLinha campos={[{ k: 'nome', label: 'Nome', v: x.nome }, { k: 'data', label: 'Data', v: x.data ?? '', tipo: 'date' }]} salvar={sv('eventos', x.id, v => ({ nome: v.nome, data: v.data || null }), v => supabase!.from('locais').update({ nome: 'Estoque: ' + v.nome }).eq('evento_id', x.id))} />
         </li>
       ))}
     </ul>
