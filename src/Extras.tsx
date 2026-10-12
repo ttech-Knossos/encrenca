@@ -295,18 +295,25 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
                         key={edItem.id}
                         type="button"
                         onClick={async () => {
-                          if (vinculado) {
-                            await supabase!
-                              .from('evento_produtos')
-                              .delete()
-                              .eq('evento_id', x.id)
-                              .eq('edicao_id', edItem.id)
-                          } else {
-                            await supabase!
-                              .from('evento_produtos')
-                              .insert({ evento_id: x.id, edicao_id: edItem.id })
+                          setErro('')
+                          try {
+                            if (vinculado) {
+                              const { error } = await supabase!
+                                .from('evento_produtos')
+                                .delete()
+                                .eq('evento_id', x.id)
+                                .eq('edicao_id', edItem.id)
+                              if (error) setErro(error.message)
+                            } else {
+                              const { error } = await supabase!
+                                .from('evento_produtos')
+                                .insert({ evento_id: x.id, edicao_id: edItem.id })
+                              if (error) setErro(error.message)
+                            }
+                            onOk()
+                          } catch (err: any) {
+                            setErro('Erro na operação: ' + err.message)
                           }
-                          onOk()
                         }}
                         style={{
                           background: vinculado ? '#2B6CB0' : '#EDF2F7',
