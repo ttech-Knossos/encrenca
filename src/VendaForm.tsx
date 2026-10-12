@@ -15,10 +15,17 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [destino, setDestino] = useState('coletivo')
   const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
 
-  // Filtra produtos vinculados ao evento ou mostra todos se nenhum evento for selecionado
-  const edicoesExibidas = eventoId
-    ? d.edicoes?.filter(ed => d.evento_produtos?.some(ep => ep.evento_id === eventoId && ep.edicao_id === ed.id))
-    : d.edicoes?.filter(x => x.ativa !== false)
+  // Filtra produtos vinculados ao evento selecionado. Se nenhum evento for selecionado, exibe todos os produtos ativos.
+  const edicoesExibidas = d.edicoes?.filter(ed => {
+    if (ed.ativa === false) return false
+    if (!eventoId) return true
+    
+    // Procura na tabela evento_produtos se existe vinculação com o evento selecionado
+    const estaNoEvento = d.evento_produtos?.some(
+      ep => String(ep.evento_id) === String(eventoId) && String(ep.edicao_id) === String(ed.id)
+    )
+    return estaNoEvento
+  })
 
   const alterarQtd = (edicaoId: string, delta: number) => {
     setCarrinho(prev => {
@@ -34,7 +41,7 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
 
   // Cálculo automático do subtotal bruto
   const subtotalCentavos = Object.entries(carrinho).reduce((acc, [edId, qtd]) => {
-    const ed = d.edicoes?.find(e => e.id === edId)
+    const ed = d.edicoes?.find(e => String(e.id) === String(edId))
     return acc + (ed?.preco_sugerido_centavos ?? 0) * qtd
   }, 0)
 
@@ -45,9 +52,8 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
     e.preventDefault()
 
     const itensEnvio = Object.entries(carrinho).map(([edId, qtd]) => {
-      const ed = d.edicoes?.find(e => e.id === edId)
-      // Tenta achar local do evento ou central
-      const orig = d.locais?.find(l => l.evento_id === eventoId)?.id ?? d.locais?.find(l => l.tipo === 'central')?.id ?? d.locais?.[0]?.id ?? ''
+      const ed = d.edicoes?.find(e => String(e.id) === String(edId))
+      const orig = d.locais?.find(l => String(l.evento_id) === String(eventoId))?.id ?? d.locais?.find(l => l.tipo === 'central')?.id ?? d.locais?.[0]?.id ?? ''
       return {
         edicao_id: edId,
         origem_id: orig,
@@ -100,7 +106,7 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
       <label>
         Evento
         <select value={eventoId} onChange={e => { setEventoId(e.target.value); setCarrinho({}); }}>
-          <option value="">Selecione o Evento (ou Venda Geral)</option>
+          <option value="">Selecione o Evento (ou Venda Geral / Todos os produtos)</option>
           {d.eventos?.map(x => (
             <option key={x.id} value={x.id}>{x.nome}</option>
           ))}
@@ -109,24 +115,30 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
 
       {/* 2. Lista de Produtos com + e - */}
       <h3>Produtos</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px', margin: '10px 0' }}>
-        {edicoesExibidas?.map(ed => {
-          const qtd = carrinho[ed.id] || 0
-          const dono = d.pessoas?.find(p => p.id === ed.proprietario_id)?.nome
-          return (
-            <div key={ed.id} style={{ border: '1px solid #CBD5E0', padding: '10px', borderRadius: '8px', background: qtd > 0 ? '#F0FFF4' : '#FFF' }}>
-              <strong>{ed.titulo}</strong>
-              <div style={{ fontSize: '12px', color: '#718096' }}>{dono ? `Produto de: ${dono}` : 'Produto do Coletivo'}</div>
-              <div style={{ fontWeight: 'bold', margin: '4px 0' }}>R$ {((ed.preco_sugerido_centavos ?? 0) / 100).toFixed(2).replace('.', ',')}</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
-                <button type="button" onClick={() => alterarQtd(ed.id, -1)} disabled={qtd === 0} style={{ width: '36px', height: '36px', fontSize: '18px' }}>-</button>
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{qtd}</span>
-                <button type="button" onClick={() => alterarQtd(ed.id, 1)} style={{ width: '36px', height: '36px', fontSize: '18px' }}>+</button>
+      {edicoesExibidas && edicoesExibidas.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px', margin: '10px 0' }}>
+          {edicoesExibidas.map(ed => {
+            const qtd = carrinho[ed.id] || 0
+            const dono = d.pessoas?.find(p => String(p.id) === String(ed.proprietario_id))?.nome
+            return (
+              <div key={ed.id} style={{ border: '1px solid #CBD5E0', padding: '10px', borderRadius: '8px', background: qtd > 0 ? '#F0FFF4' : '#FFF' }}>
+                <strong>{ed.titulo}</strong>
+                <div style={{ fontSize: '12px', color: '#718096' }}>{dono ? `Produto de: ${dono}` : 'Produto do Coletivo'}</div>
+                <div style={{ fontWeight: 'bold', margin: '4px 0' }}>R$ {((ed.preco_sugerido_centavos ?? 0) / 100).toFixed(2).replace('.', ',')}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                  <button type="button" onClick={() => alterarQtd(ed.id, -1)} disabled={qtd === 0} style={{ width: '36px', height: '36px', fontSize: '18px' }}>-</button>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{qtd}</span>
+                  <button type="button" onClick={() => alterarQtd(ed.id, 1)} style={{ width: '36px', height: '36px', fontSize: '18px' }}>+</button>
+                </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      ) : (
+        <p style={{ color: '#718096', fontStyle: 'italic', margin: '10px 0' }}>
+          {eventoId ? 'Nenhum produto foi vinculado a este evento ainda. Vá na aba Cadastros para vincular produtos.' : 'Nenhum produto cadastrado no sistema.'}
+        </p>
+      )}
 
       {/* 3. Desconto e Valor Total Calculado */}
       <label>
