@@ -16,39 +16,42 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  padding: 16px;
+  padding: 20px 12px;
   display: flex;
   justify-content: center;
 }
 
+/* Container largo no notebook/desktop (até 1200px) e fluido em telas menores */
 .container {
   width: 100%;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   background: var(--card-bg);
-  padding: 24px;
+  padding: 28px;
   border: 2px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 4px 4px 0px #000000;
 }
 
+/* Navegação em linha no notebook/desktop */
 nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
   border-bottom: 2px solid #e2e8f0;
 }
 
 nav button {
-  padding: 8px 14px;
+  width: auto;
+  padding: 10px 18px;
   border-radius: 6px;
   border: 1.5px solid var(--border-color);
   background: #edf2f7;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.2s;
 }
 
@@ -57,10 +60,12 @@ nav button.ativo {
   box-shadow: 2px 2px 0px #000;
 }
 
+/* Formagems e Layout de Formulários */
 form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 label {
@@ -71,31 +76,38 @@ label {
   font-size: 14px;
 }
 
-input, select, button {
+input, select {
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border: 1.5px solid var(--border-color);
   border-radius: 6px;
   font-size: 15px;
   background: #ffffff;
 }
 
+button {
+  cursor: pointer;
+}
+
 button[type="submit"], .btn-primary {
   background: var(--primary-color);
   font-weight: bold;
-  cursor: pointer;
-  margin-top: 8px;
+  padding: 12px 18px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 15px;
 }
 
+/* Tabelas limpas */
 .tabela-resumo {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .tabela-resumo th, .tabela-resumo td {
   border: 1px solid #cbd5e0;
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: left;
   font-size: 14px;
 }
@@ -104,8 +116,26 @@ button[type="submit"], .btn-primary {
   background: #edf2f7;
 }
 
-@media (max-width: 600px) {
+/* --- AJUSTES RESPONSIVOS PARA MOVIEL E TABLET --- */
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px 6px;
+  }
+
   .container {
-    padding: 16px;
+    padding: 16px 12px;
+    border-radius: 8px;
+  }
+
+  nav {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  nav button {
+    width: 100%;
+    text-align: center;
   }
 }
