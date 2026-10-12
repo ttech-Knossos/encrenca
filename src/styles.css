@@ -16,43 +16,47 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  padding: 20px 12px;
+  padding: 20px 16px;
   display: flex;
   justify-content: center;
 }
 
-/* Container largo no notebook/desktop (até 1200px) e fluido em telas menores */
+/* Container principal equilibrado para tela de computador/notebook */
 .container {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   background: var(--card-bg);
-  padding: 28px;
+  padding: 24px 32px;
   border: 2px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 4px 4px 0px #000000;
 }
 
-/* Navegação em linha no notebook/desktop */
+/* Barra de navegação original em abas horizontais lado a lado */
 nav {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 24px;
-  padding-bottom: 14px;
+  padding-bottom: 16px;
   border-bottom: 2px solid #e2e8f0;
 }
 
 nav button {
   width: auto;
-  padding: 10px 18px;
-  border-radius: 6px;
-  border: 1.5px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
   background: #edf2f7;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 15px;
-  transition: all 0.2s;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.15s ease-in-out;
+}
+
+nav button:hover {
+  background: #e2e8f0;
 }
 
 nav button.ativo {
@@ -60,11 +64,11 @@ nav button.ativo {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Formagems e Layout de Formulários */
+/* Formulários e campos com espaçamento original */
 form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   margin-bottom: 24px;
 }
 
@@ -72,14 +76,14 @@ label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-weight: 600;
+  font-weight: bold;
   font-size: 14px;
 }
 
 input, select {
   width: 100%;
-  padding: 10px 14px;
-  border: 1.5px solid var(--border-color);
+  padding: 10px 12px;
+  border: 2px solid var(--border-color);
   border-radius: 6px;
   font-size: 15px;
   background: #ffffff;
@@ -93,49 +97,50 @@ button[type="submit"], .btn-primary {
   background: var(--primary-color);
   font-weight: bold;
   padding: 12px 18px;
-  border: 1.5px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: 6px;
-  font-size: 15px;
+  font-size: 16px;
+  box-shadow: 2px 2px 0px #000;
 }
 
-/* Tabelas limpas */
-.tabela-resumo {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
+.ok {
+  background: #dcfce7;
+  color: #166534;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #86efac;
+  margin-bottom: 10px;
 }
 
-.tabela-resumo th, .tabela-resumo td {
-  border: 1px solid #cbd5e0;
-  padding: 10px 14px;
-  text-align: left;
-  font-size: 14px;
+.erro {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #fca5a5;
+  margin-bottom: 10px;
 }
 
-.tabela-resumo th {
-  background: #edf2f7;
-}
-
-/* --- AJUSTES RESPONSIVOS PARA MOVIEL E TABLET --- */
-
+/* Ajustes para dispositivos móveis */
 @media (max-width: 768px) {
   body {
-    padding: 10px 6px;
+    padding: 8px 4px;
   }
 
   .container {
     padding: 16px 12px;
-    border-radius: 8px;
   }
 
   nav {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 8px;
   }
 
   nav button {
     width: 100%;
     text-align: center;
+    padding: 8px 10px;
+    font-size: 13px;
   }
 }
