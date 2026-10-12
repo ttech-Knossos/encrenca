@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { VendaForm } from './VendaForm'
-import { Vendas, Repasses } from './Relatorios'
+import { Vendas, Repasses } from './Vendas'
 import { Cadastros, Estoque } from './Extras'
 
 type Row = Record<string, any>
