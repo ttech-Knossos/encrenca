@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { VendaForm } from './VendaForm'
-import { Relatorio } from './Relatorio'
 import { Cadastros } from './Extras'
 
 type Row = Record<string, any>
 type Dados = Record<string, Row[]>
 
 export default function App() {
-  const [aba, setAba] = useState<'venda' | 'relatorio' | 'cadastros'>('venda')
+  const [aba, setAba] = useState<'venda' | 'cadastros'>('venda')
   const [d, setD] = useState<Dados>({})
   const [erro, setErro] = useState('')
 
@@ -33,13 +32,35 @@ export default function App() {
   return (
     <div className="container">
       <nav style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-        <button onClick={() => setAba('venda')} style={{ fontWeight: aba === 'venda' ? 'bold' : 'normal' }}>Registrar venda</button>
-        <button onClick={() => setAba('relatorio')} style={{ fontWeight: aba === 'relatorio' ? 'bold' : 'normal' }}>Relatórios / Vendas</button>
-        <button onClick={() => setAba('cadastros')} style={{ fontWeight: aba === 'cadastros' ? 'bold' : 'normal' }}>Cadastros</button>
+        <button 
+          onClick={() => setAba('venda')} 
+          style={{ 
+            fontWeight: aba === 'venda' ? 'bold' : 'normal',
+            background: aba === 'venda' ? '#a3e635' : '#edf2f7',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: '1px solid #000',
+            cursor: 'pointer'
+          }}
+        >
+          Registrar venda
+        </button>
+        <button 
+          onClick={() => setAba('cadastros')} 
+          style={{ 
+            fontWeight: aba === 'cadastros' ? 'bold' : 'normal',
+            background: aba === 'cadastros' ? '#a3e635' : '#edf2f7',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: '1px solid #000',
+            cursor: 'pointer'
+          }}
+        >
+          Cadastros & Produtos
+        </button>
       </nav>
 
       {aba === 'venda' && <VendaForm d={d} onOk={carregar} />}
-      {aba === 'relatorio' && <Relatorio d={d} onOk={carregar} />}
       {aba === 'cadastros' && <Cadastros d={d} onOk={carregar} />}
     </div>
   )
