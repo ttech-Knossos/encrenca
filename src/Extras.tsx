@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import { useEnvio, Aviso } from './envio'
 
 type Row = Record<string, any>
 type Dados = Record<string, Row[]>
@@ -531,5 +532,80 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
         ))}
       </ul>
     </>
+  )
+}
+
+const TIPOS: Record<string, [string, boolean, boolean]> = {
+  saldo_inicial: ['Estoque inicial', false, true],
+  entrada: ['Nova entrada/reimpressão', false, true],
+  distribuicao: ['Distribuir', true, true],
+  transferencia: ['Transferir', true, true],
+  devolucao: ['Devolver ao central', true, true],
+  cortesia: ['Cortesia', true, false],
+  perda: ['Perda', true, false]
+}
+
+export function Estoque({ d, onOk }: { d: Dados; onOk: () => void }) {
+  const vazio = { tipo: 'distribuicao', ed: '', o: '', d: '', q: '', em_nome_de: '', obs: '' }
+  const [f, setF] = useState(vazio)
+  const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
+
+  const [, pO, pD] = TIPOS[f.tipo]
+  const set = (k: string) => (e: React.ChangeEvent<any>) => setF({ ...f, [k]: e.target.value })
+  const locais = (v: string, k: string) => (
+    <label>{k}
+      <select value={v} onChange={set(k === 'Sai de' ? 'o' : 'd')} required>
+        <option value="">Selecione</option>
+        {d.locais?.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+      </select>
+    </label>
+  )
+
+  return (
+    <form onSubmit={e => {
+      e.preventDefault();
+      enviar('mover_estoque', {
+        tipo: f.tipo,
+        edicao_id: f.ed,
+        origem_id: pO ? f.o : '',
+        destino_id: pD ? f.d : '',
+        qtd: +f.q,
+        em_nome_de: f.em_nome_de || null,
+        obs: f.obs
+      }).then(ok => ok && setF(vazio))
+    }}>
+      <h2>Movimentar estoque</h2>
+      <label>O que aconteceu
+        <select value={f.tipo} onChange={set('tipo')}>
+          {Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
+        </select>
+      </label>
+
+      <label>Edição / Produto
+        <select value={f.ed} onChange={set('ed')} required>
+          <option value="">Selecione</option>
+          {d.edicoes?.filter(x => x.ativa !== false).map(x => <option key={x.id} value={x.id}>{x.titulo}</option>)}
+        </select>
+      </label>
+
+      {pO && locais(f.o, 'Sai de')}
+      {pD && locais(f.d, 'Vai para')}
+
+      {f.tipo === 'cortesia' && (
+        <label>Cortesia para quem?
+          <select value={f.em_nome_de} onChange={set('em_nome_de')} required>
+            <option value="">Selecione a pessoa</option>
+            {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          </select>
+        </label>
+      )}
+
+      <label>Quantidade<input inputMode="numeric" value={f.q} onChange={set('q')} required /></label>
+      <details><summary>Observação (opcional)</summary><input value={f.obs} onChange={set('obs')}/></details>
+      
+      <Aviso erro={erro} incerto={incerto} descartar={descartar} />
+      {msg && <div className="ok" role="status">{msg}</div>}
+      <button disabled={env}>{env ? 'Salvando…' : 'Salvar'}</button>
+    </form>
   )
 }
