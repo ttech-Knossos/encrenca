@@ -1,3 +1,4 @@
+import logoImg from './logo.png'
 import { useEffect, useState } from 'react'
 import { useEnvio, Aviso } from './envio'
 import { Cadastros, Estoque } from './Extras'
@@ -53,7 +54,7 @@ function Shell() {
   return <>
     <header>
       <div className="logo" aria-label="Logo do coletivo">
-        <img src="/logo.png" alt="Desencrenca" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+        <img src={logoImg} alt="Desencrenca" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
       </div>
       <h1>DESENCRENCA</h1>
       <button onClick={() => supabase!.auth.signOut()}>Sair</button>
@@ -83,4 +84,9 @@ function Repasse({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [pessoa, setPessoa] = useState(''); const [valor, setValor] = useState('')
   const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
   return <form onSubmit={e => { e.preventDefault(); enviar('registrar_repasse', { pessoa_id: pessoa, valor_centavos: cents(valor), em_nome_de: pessoa }).then(ok => { if (ok) setValor('') }) }}>
-    <h2>
+    2. <h2>Registrar repasse</h2>
+    <label>Quem transferiu<select value={pessoa} onChange={e => setPessoa(e.target.value)} required><option value="">Selecione</option>{d.pessoas?.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></label>
+    <label>Valor (R$)<input inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)} required /></label>
+    <Aviso erro={erro} incerto={incerto} descartar={descartar} />{msg && <div className="ok" role="status">{msg}</div>}
+    <button disabled={env}>{env ? 'Salvando…' : 'Salvar repasse'}</button></form>
+}
