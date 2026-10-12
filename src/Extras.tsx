@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
-import { useEnvio, Aviso } from './envio'
 
 type Row = Record<string, any>
 type Dados = Record<string, Row[]>
@@ -37,14 +36,15 @@ function EditarLinha({ campos, salvar }: { campos: Campo[]; salvar: (v: Record<s
 }
 
 export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
-  const [ed, setEd] = useState({ titulo: '', numero: '', preco: '', proprietario_id: '' })
+  const [ed, setEd] = useState({ titulo: '', numero: '', preco: '', proprietario_id: '', qtd_estoque: '0' })
   const [pe, setPe] = useState('')
   const [ev, setEv] = useState({ nome: '', data: '' })
-  const [produtosEvSelecionados, setProdutosEvSelecionados] = useState<string[]>([])
+  
+  const [produtosEvQtd, setProdutosEvQtd] = useState<Record<string, number>>({})
   const [eventoEmEdicao, setEventoEmEdicao] = useState<string | null>(null)
   
   const [mostrarNovoProdRapido, setMostrarNovoProdRapido] = useState(false)
-  const [prodRapido, setProdRapido] = useState({ titulo: '', preco: '', proprietario_id: '' })
+  const [prodRapido, setProdRapido] = useState({ titulo: '', preco: '', proprietario_id: '', qtd_inicial: '1' })
 
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState('')
@@ -58,14 +58,66 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
     } catch { setErro('Sem conexão. Seus dados continuam no formulário.') }
   }
 
+  // Criação de produto com quantidade inicial de estoque direta
   const novaEd = (e: React.FormEvent) => {
     e.preventDefault()
-    run(async () => supabase!.from('edicoes').insert({
-      titulo: ed.titulo,
-      numero: ed.numero || null,
-      preco_sugerido_centavos: ed.preco ? cents(ed.preco) : 0,
-      proprietario_id: ed.proprietario_id || null
-    }), () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '' }))
+    run(async () => {
+      const r = await supabase!.from('edicoes').insert({
+        titulo: ed.titulo,
+        numero: ed.numero || null,
+        preco_sugerido_centavos: ed.preco ? cents(ed.preco) : 0,
+        proprietario_id: ed.proprietario_id || null
+      }).select('id').single()
+
+      if (r.error) return r
+
+      const qtdInicial = parseInt(ed.qtd_estoque) || 0
+      if (qtdInicial > 0) {
+        const localCentral = d.locais?.find(l => l.tipo === 'central')?.id || d.locais?.[0]?.id
+        if (localCentral) {
+          await supabase!.from('movimentos').insert({
+            tipo: 'entrada',
+            edicao_id: r.data.id,
+            destino_id: localCentral,
+            qtd: qtdInicial,
+            obs: 'Estoque inicial no cadastro'
+          })
+        }
+      }
+
+      return { error: null }
+    }, () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '', qtd_estoque: '0' }))
+  }
+
+  // Função para ajustar o estoque de um produto com os botões + e -
+  const ajustarEstoqueProduto = async (edicaoId: string, delta: number) => {
+    setErro(''); setOk('')
+    try {
+      const localCentral = d.locais?.find(l => l.tipo === 'central')?.id || d.locais?.[0]?.id
+      if (!localCentral) return
+
+      if (delta > 0) {
+        await supabase!.from('movimentos').insert({
+          tipo: 'entrada',
+          edicao_id: edicaoId,
+          destino_id: localCentral,
+          qtd: delta,
+          obs: 'Ajuste manual de estoque (+)'
+        })
+      } else if (delta < 0) {
+        await supabase!.from('movimentos').insert({
+          tipo: 'perda',
+          edicao_id: edicaoId,
+          origem_id: localCentral,
+          qtd: Math.abs(delta),
+          obs: 'Ajuste manual de estoque (-)'
+        })
+      }
+      setOk('Estoque atualizado!')
+      onOk()
+    } catch (err: any) {
+      setErro('Erro ao ajustar estoque: ' + err.message)
+    }
   }
 
   const criarProdutoRapidoInline = async (e: React.FormEvent) => {
@@ -86,8 +138,9 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       if (error) {
         setErro(error.message)
       } else if (data) {
-        setProdutosEvSelecionados(prev => [...prev, String(data.id)])
-        setProdRapido({ titulo: '', preco: '', proprietario_id: '' })
+        const q = parseInt(prodRapido.qtd_inicial) || 1
+        setProdutosEvQtd(prev => ({ ...prev, [String(data.id)]: q }))
+        setProdRapido({ titulo: '', preco: '', proprietario_id: '', qtd_inicial: '1' })
         setMostrarNovoProdRapido(false)
         setOk('Produto criado e adicionado ao evento!')
         onOk()
@@ -115,23 +168,48 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       const eventoId = r.data.id
       await supabase!.from('locais').insert({ tipo: 'evento', nome: 'Estoque: ' + ev.nome, evento_id: eventoId })
 
-      if (produtosEvSelecionados.length > 0) {
-        const payload = produtosEvSelecionados.map(edicao_id => ({ evento_id: eventoId, edicao_id }))
+      const entries = Object.entries(produtosEvQtd)
+      if (entries.length > 0) {
+        const payload = entries.map(([edicao_id, qtd_estoque]) => ({
+          evento_id: eventoId,
+          edicao_id,
+          qtd_estoque
+        }))
         await supabase!.from('evento_produtos').insert(payload)
       }
 
       return { error: null }
     }, () => {
       setEv({ nome: '', data: '' })
-      setProdutosEvSelecionados([])
+      setProdutosEvQtd({})
     })
   }
 
   const toggleProdutoCriacao = (edicaoId: string) => {
     const idStr = String(edicaoId)
-    setProdutosEvSelecionados(prev =>
-      prev.includes(idStr) ? prev.filter(id => id !== idStr) : [...prev, idStr]
-    )
+    setProdutosEvQtd(prev => {
+      const copy = { ...prev }
+      if (copy[idStr] !== undefined) {
+        delete copy[idStr]
+      } else {
+        copy[idStr] = 1
+      }
+      return copy
+    })
+  }
+
+  const alterarQtdCriacao = (edicaoId: string, delta: number) => {
+    const idStr = String(edicaoId)
+    setProdutosEvQtd(prev => {
+      const atual = prev[idStr] ?? 0
+      const nova = atual + delta
+      if (nova <= 0) {
+        const copy = { ...prev }
+        delete copy[idStr]
+        return copy
+      }
+      return { ...prev, [idStr]: nova }
+    })
   }
 
   const sv = (t: string, id: string, mk: (v: Record<string, string>) => Row, filho?: (v: Record<string, string>) => PromiseLike<{ error: any }>) => async (v: Record<string, string>) => {
@@ -145,11 +223,13 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   return <>
     {erro && <div className="erro" role="alert">{erro}</div>}{ok && <div className="ok" role="status">{ok}</div>}
     
+    {/* Form de Cadastro de Produto com Estoque Inicial Integrado */}
     <form onSubmit={novaEd}>
       <h2>Nova edição / Produto</h2>
       <label>Título<input value={ed.titulo} onChange={e => setEd({ ...ed, titulo: e.target.value })} required /></label>
       <label>Número (opcional)<input value={ed.numero} onChange={e => setEd({ ...ed, numero: e.target.value })} /></label>
       <label>Preço sugerido (R$)<input inputMode="decimal" value={ed.preco} onChange={e => setEd({ ...ed, preco: e.target.value })} /></label>
+      <label>Estoque inicial<input type="number" min="0" value={ed.qtd_estoque} onChange={e => setEd({ ...ed, qtd_estoque: e.target.value })} required /></label>
       
       <label>Proprietário do produto
         <select value={ed.proprietario_id} onChange={e => setEd({ ...ed, proprietario_id: e.target.value })}>
@@ -160,35 +240,58 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       <button>Salvar produto</button>
     </form>
 
-    <h3>Edições / Produtos</h3>
-    <ul>
+    {/* Lista de Produtos com Ajuste Rápido de Estoque (+ / -) */}
+    <h3>Edições / Produtos Cadastrados</h3>
+    <ul style={{ listStyle: 'none', padding: 0 }}>
       {d.edicoes?.map(x => {
         const dono = d.pessoas?.find(p => String(p.id) === String(x.proprietario_id))?.nome
+        // Calcula o saldo atual do produto somando as movimentações registradas no v_saldos
+        const saldoCalculado = d.saldos?.filter(s => String(s.edicao_id) === String(x.id)).reduce((acc, curr) => acc + (curr.qtd || 0), 0) ?? 0
+
         return (
-          <li key={x.id}>
-            {x.titulo} {dono ? `(De: ${dono})` : '(Coletivo)'} {x.ativa === false && '(arquivada)'}{' '}
-            <button onClick={() => run(async () => supabase!.from('edicoes').update({ ativa: x.ativa === false }).eq('id', x.id), () => {})}>
-              {x.ativa === false ? 'Reativar' : 'Arquivar'}
-            </button>{' '}
-            <EditarLinha 
-              campos={[
-                { k: 'titulo', label: 'Título', v: x.titulo },
-                { k: 'numero', label: 'Número', v: x.numero ?? '' },
-                { k: 'preco', label: 'Preço sugerido (R$)', v: (x.preco_sugerido_centavos / 100).toFixed(2).replace('.', ',') },
-                { k: 'proprietario_id', label: 'Proprietário', v: x.proprietario_id ?? '', tipo: 'select', opcoes: d.pessoas?.map(p => ({ id: p.id, nome: p.nome })) }
-              ]} 
-              salvar={sv('edicoes', x.id, v => ({
-                titulo: v.titulo,
-                numero: v.numero || null,
-                preco_sugerido_centavos: v.preco ? cents(v.preco) : 0,
-                proprietario_id: v.proprietario_id || null
-              }))} 
-            />
+          <li key={x.id} style={{ border: '1px solid #CBD5E0', padding: '10px', marginBottom: '8px', borderRadius: '6px', background: '#FFF' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <strong>{x.titulo}</strong> {dono ? `(De: ${dono})` : '(Coletivo)'} {x.ativa === false && '(arquivada)'}
+                <div style={{ fontSize: '13px', color: '#4A5568', marginTop: '4px' }}>
+                  Preço: R$ {((x.preco_sugerido_centavos ?? 0) / 100).toFixed(2).replace('.', ',')}
+                </div>
+              </div>
+
+              {/* Botões para Editar Estoque do Produto na Hora */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#EDF2F7', padding: '6px 10px', borderRadius: '6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Estoque:</span>
+                <button type="button" onClick={() => ajustarEstoqueProduto(x.id, -1)} style={{ padding: '2px 8px', fontWeight: 'bold' }}>-</button>
+                <span style={{ fontSize: '15px', fontWeight: 'bold', minWidth: '30px', textAlign: 'center' }}>{saldoCalculado} un</span>
+                <button type="button" onClick={() => ajustarEstoqueProduto(x.id, 1)} style={{ padding: '2px 8px', fontWeight: 'bold' }}>+</button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+              <button onClick={() => run(async () => supabase!.from('edicoes').update({ ativa: x.ativa === false }).eq('id', x.id), () => {})}>
+                {x.ativa === false ? 'Reativar' : 'Arquivar'}
+              </button>
+              <EditarLinha 
+                campos={[
+                  { k: 'titulo', label: 'Título', v: x.titulo },
+                  { k: 'numero', label: 'Número', v: x.numero ?? '' },
+                  { k: 'preco', label: 'Preço sugerido (R$)', v: (x.preco_sugerido_centavos / 100).toFixed(2).replace('.', ',') },
+                  { k: 'proprietario_id', label: 'Proprietário', v: x.proprietario_id ?? '', tipo: 'select', opcoes: d.pessoas?.map(p => ({ id: p.id, nome: p.nome })) }
+                ]} 
+                salvar={sv('edicoes', x.id, v => ({
+                  titulo: v.titulo,
+                  numero: v.numero || null,
+                  preco_sugerido_centavos: v.preco ? cents(v.preco) : 0,
+                  proprietario_id: v.proprietario_id || null
+                }))} 
+              />
+            </div>
           </li>
         )
       })}
     </ul>
 
+    {/* Form de Criação de Evento */}
     <form onSubmit={novoEv}>
       <h2>Nova feira / evento</h2>
       <label>Nome<input value={ev.nome} onChange={e => setEv({ ...ev, nome: e.target.value })} required /></label>
@@ -196,7 +299,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
 
       <div style={{ margin: '15px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <label style={{ fontWeight: 'bold', margin: 0 }}>Produtos presentes neste evento:</label>
+          <label style={{ fontWeight: 'bold', margin: 0 }}>Produtos e Estoque do Evento:</label>
           <button 
             type="button" 
             onClick={() => setMostrarNovoProdRapido(!mostrarNovoProdRapido)}
@@ -229,6 +332,15 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
                 <option value="">Coletivo (Produto padrão)</option>
                 {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
               </select>
+              <label style={{ fontSize: '13px' }}>
+                Estoque inicial neste evento:
+                <input 
+                  type="number" 
+                  min="1" 
+                  value={prodRapido.qtd_inicial} 
+                  onChange={e => setProdRapido({ ...prodRapido, qtd_inicial: e.target.value })} 
+                />
+              </label>
               <button type="button" onClick={criarProdutoRapidoInline} style={{ background: '#38A169', color: '#FFF' }}>
                 Salvar Produto e Incluir no Evento
               </button>
@@ -236,26 +348,57 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
           {d.edicoes?.filter(x => x.ativa !== false).map(edItem => {
-            const marcado = produtosEvSelecionados.includes(String(edItem.id))
+            const qtd = produtosEvQtd[String(edItem.id)]
+            const selecionado = qtd !== undefined
             const dono = d.pessoas?.find(p => String(p.id) === String(edItem.proprietario_id))?.nome
+
             return (
-              <button
-                key={edItem.id}
-                type="button"
-                onClick={() => toggleProdutoCriacao(String(edItem.id))}
-                style={{
-                  background: marcado ? '#2B6CB0' : '#E2E8F0',
-                  color: marcado ? '#FFF' : '#2D3748',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
+              <div 
+                key={edItem.id} 
+                style={{ 
+                  border: '1px solid #CBD5E0', 
+                  borderRadius: '6px', 
+                  padding: '8px', 
+                  background: selecionado ? '#EBF8FF' : '#FFF',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
                 }}
               >
-                {marcado ? '✓ ' : '+ '} {edItem.titulo} {dono ? `(${dono})` : '(Coletivo)'}
-              </button>
+                <div>
+                  <strong>{edItem.titulo}</strong>
+                  <div style={{ fontSize: '11px', color: '#718096' }}>{dono ? `(${dono})` : '(Coletivo)'}</div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                  {!selecionado ? (
+                    <button 
+                      type="button" 
+                      onClick={() => toggleProdutoCriacao(String(edItem.id))}
+                      style={{ width: '100%', background: '#E2E8F0', border: 'none', padding: '4px', borderRadius: '4px' }}
+                    >
+                      + Incluir
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button type="button" onClick={() => alterarQtdCriacao(String(edItem.id), -1)} style={{ padding: '2px 8px' }}>-</button>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{qtd} un</span>
+                        <button type="button" onClick={() => alterarQtdCriacao(String(edItem.id), 1)} style={{ padding: '2px 8px' }}>+</button>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => toggleProdutoCriacao(String(edItem.id))}
+                        style={{ background: '#E53E3E', color: '#FFF', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}
+                      >
+                        Remover
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             )
           })}
         </div>
@@ -264,6 +407,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       <button>Salvar evento</button>
     </form>
 
+    {/* Lista de Eventos Cadastrados */}
     <h3>Eventos Cadastrados</h3>
     <ul style={{ listStyle: 'none', padding: 0 }}>
       {d.eventos?.map(x => {
@@ -275,57 +419,95 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
                 <strong>{x.nome}</strong> {x.data ? `— ${x.data}` : ''}
               </div>
               <button type="button" onClick={() => setEventoEmEdicao(estaEditando ? null : String(x.id))}>
-                {estaEditando ? 'Fechar Edição' : 'Editar Produtos do Evento'}
+                {estaEditando ? 'Fechar Edição' : 'Editar Produtos e Estoque do Evento'}
               </button>
             </div>
 
             {estaEditando && (
               <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #CBD5E0' }}>
                 <p style={{ fontSize: '14px', margin: '0 0 8px 0', fontWeight: 'bold' }}>
-                  Clique para adicionar (+) ou remover (✓) produtos deste evento:
+                  Ajuste a quantidade de estoque de cada produto neste evento:
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
                   {d.edicoes?.filter(e => e.ativa !== false).map(edItem => {
-                    const vinculado = d.evento_produtos?.some(
+                    const reg = d.evento_produtos?.find(
                       ep => String(ep.evento_id) === String(x.id) && String(ep.edicao_id) === String(edItem.id)
                     )
+                    const vinculado = !!reg
+                    const qtdAtual = reg?.qtd_estoque ?? 0
                     const dono = d.pessoas?.find(p => String(p.id) === String(edItem.proprietario_id))?.nome
+
+                    const atualizarEstoque = async (novaQtd: number) => {
+                      setErro('')
+                      try {
+                        if (novaQtd <= 0) {
+                          await supabase!
+                            .from('evento_produtos')
+                            .delete()
+                            .eq('evento_id', x.id)
+                            .eq('edicao_id', edItem.id)
+                        } else if (vinculado) {
+                          await supabase!
+                            .from('evento_produtos')
+                            .update({ qtd_estoque: novaQtd })
+                            .eq('evento_id', x.id)
+                            .eq('edicao_id', edItem.id)
+                        } else {
+                          await supabase!
+                            .from('evento_produtos')
+                            .insert({ evento_id: x.id, edicao_id: edItem.id, qtd_estoque: novaQtd })
+                        }
+                        onOk()
+                      } catch (err: any) {
+                        setErro('Erro na operação: ' + err.message)
+                      }
+                    }
+
                     return (
-                      <button
+                      <div 
                         key={edItem.id}
-                        type="button"
-                        onClick={async () => {
-                          setErro('')
-                          try {
-                            if (vinculado) {
-                              const { error } = await supabase!
-                                .from('evento_produtos')
-                                .delete()
-                                .eq('evento_id', x.id)
-                                .eq('edicao_id', edItem.id)
-                              if (error) setErro(error.message)
-                            } else {
-                              const { error } = await supabase!
-                                .from('evento_produtos')
-                                .insert({ evento_id: x.id, edicao_id: edItem.id })
-                              if (error) setErro(error.message)
-                            }
-                            onOk()
-                          } catch (err: any) {
-                            setErro('Erro na operação: ' + err.message)
-                          }
-                        }}
                         style={{
-                          background: vinculado ? '#2B6CB0' : '#EDF2F7',
-                          color: vinculado ? '#FFF' : '#2D3748',
                           border: '1px solid #CBD5E0',
-                          padding: '6px 10px',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
+                          borderRadius: '6px',
+                          padding: '8px',
+                          background: vinculado ? '#EBF8FF' : '#FFF',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justify: 'space-between'
                         }}
                       >
-                        {vinculado ? '✓ ' : '+ '} {edItem.titulo} {dono ? `(${dono})` : ''}
-                      </button>
+                        <div>
+                          <strong>{edItem.titulo}</strong>
+                          <div style={{ fontSize: '11px', color: '#718096' }}>{dono ? `(${dono})` : ''}</div>
+                        </div>
+
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          {!vinculado ? (
+                            <button 
+                              type="button" 
+                              onClick={() => atualizarEstoque(1)}
+                              style={{ width: '100%', background: '#E2E8F0', border: 'none', padding: '4px', borderRadius: '4px' }}
+                            >
+                              + Adicionar (1 un)
+                            </button>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <button type="button" onClick={() => atualizarEstoque(qtdAtual - 1)} style={{ padding: '2px 8px' }}>-</button>
+                                <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{qtdAtual} un</span>
+                                <button type="button" onClick={() => atualizarEstoque(qtdAtual + 1)} style={{ padding: '2px 8px' }}>+</button>
+                              </div>
+                              <button 
+                                type="button" 
+                                onClick={() => atualizarEstoque(0)}
+                                style={{ background: '#E53E3E', color: '#FFF', border: 'none', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
@@ -355,79 +537,4 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       ))}
     </ul>
   </>
-}
-
-const TIPOS: Record<string, [string, boolean, boolean]> = {
-  saldo_inicial: ['Estoque inicial', false, true],
-  entrada: ['Nova entrada/reimpressão', false, true],
-  distribuicao: ['Distribuir', true, true],
-  transferencia: ['Transferir', true, true],
-  devolucao: ['Devolver ao central', true, true],
-  cortesia: ['Cortesia', true, false],
-  perda: ['Perda', true, false]
-}
-
-export function Estoque({ d, onOk }: { d: Dados; onOk: () => void }) {
-  const vazio = { tipo: 'distribuicao', ed: '', o: '', d: '', q: '', em_nome_de: '', obs: '' }
-  const [f, setF] = useState(vazio)
-  const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
-
-  const [, pO, pD] = TIPOS[f.tipo]
-  const set = (k: string) => (e: React.ChangeEvent<any>) => setF({ ...f, [k]: e.target.value })
-  const locais = (v: string, k: string) => (
-    <label>{k}
-      <select value={v} onChange={set(k === 'Sai de' ? 'o' : 'd')} required>
-        <option value="">Selecione</option>
-        {d.locais?.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
-      </select>
-    </label>
-  )
-
-  return (
-    <form onSubmit={e => {
-      e.preventDefault();
-      enviar('mover_estoque', {
-        tipo: f.tipo,
-        edicao_id: f.ed,
-        origem_id: pO ? f.o : '',
-        destino_id: pD ? f.d : '',
-        qtd: +f.q,
-        em_nome_de: f.em_nome_de || null,
-        obs: f.obs
-      }).then(ok => ok && setF(vazio))
-    }}>
-      <h2>Movimentar estoque</h2>
-      <label>O que aconteceu
-        <select value={f.tipo} onChange={set('tipo')}>
-          {Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
-        </select>
-      </label>
-
-      <label>Edição / Produto
-        <select value={f.ed} onChange={set('ed')} required>
-          <option value="">Selecione</option>
-          {d.edicoes?.filter(x => x.ativa !== false).map(x => <option key={x.id} value={x.id}>{x.titulo}</option>)}
-        </select>
-      </label>
-
-      {pO && locais(f.o, 'Sai de')}
-      {pD && locais(f.d, 'Vai para')}
-
-      {f.tipo === 'cortesia' && (
-        <label>Cortesia para quem?
-          <select value={f.em_nome_de} onChange={set('em_nome_de')} required>
-            <option value="">Selecione a pessoa</option>
-            {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </label>
-      )}
-
-      <label>Quantidade<input inputMode="numeric" value={f.q} onChange={set('q')} required /></label>
-      <details><summary>Observação (opcional)</summary><input value={f.obs} onChange={set('obs')} /></details>
-      
-      <Aviso erro={erro} incerto={incerto} descartar={descartar} />
-      {msg && <div className="ok" role="status">{msg}</div>}
-      <button disabled={env}>{env ? 'Salvando…' : 'Salvar'}</button>
-    </form>
-  )
 }
