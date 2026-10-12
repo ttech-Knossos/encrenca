@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { VendaForm } from './VendaForm'
-import { Vendas, Repasses } from './Relatorios'
-import { Cadastros, Estoque } from './Extras'
+import { Relatorio } from './Relatorio'
+import { Cadastros } from './Extras'
 
 type Row = Record<string, any>
 type Dados = Record<string, Row[]>
 
 export default function App() {
-  const [aba, setAba] = useState<'venda' | 'vendas' | 'repasses' | 'estoque' | 'cadastros'>('venda')
+  const [aba, setAba] = useState<'venda' | 'relatorio' | 'cadastros'>('venda')
   const [d, setD] = useState<Dados>({})
   const [erro, setErro] = useState('')
 
@@ -34,16 +34,12 @@ export default function App() {
     <div className="container">
       <nav style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
         <button onClick={() => setAba('venda')} style={{ fontWeight: aba === 'venda' ? 'bold' : 'normal' }}>Registrar venda</button>
-        <button onClick={() => setAba('vendas')} style={{ fontWeight: aba === 'vendas' ? 'bold' : 'normal' }}>Vendas</button>
-        <button onClick={() => setAba('repasses')} style={{ fontWeight: aba === 'repasses' ? 'bold' : 'normal' }}>Registrar repasse</button>
-        <button onClick={() => setAba('estoque')} style={{ fontWeight: aba === 'estoque' ? 'bold' : 'normal' }}>Estoque</button>
+        <button onClick={() => setAba('relatorio')} style={{ fontWeight: aba === 'relatorio' ? 'bold' : 'normal' }}>Relatórios / Vendas</button>
         <button onClick={() => setAba('cadastros')} style={{ fontWeight: aba === 'cadastros' ? 'bold' : 'normal' }}>Cadastros</button>
       </nav>
 
       {aba === 'venda' && <VendaForm d={d} onOk={carregar} />}
-      {aba === 'vendas' && <Vendas d={d} onOk={carregar} />}
-      {aba === 'repasses' && <Repasses d={d} onOk={carregar} />}
-      {aba === 'estoque' && <Estoque d={d} onOk={carregar} />}
+      {aba === 'relatorio' && <Relatorio d={d} onOk={carregar} />}
       {aba === 'cadastros' && <Cadastros d={d} onOk={carregar} />}
     </div>
   )
