@@ -52,7 +52,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
     } catch { setErro('Sem conexão. Seus dados continuam no formulário.') }
   }
 
-  // Regra 5: Inclui o proprietario_id no cadastro da edição/produto
   const novaEd = (e: React.FormEvent) => {
     e.preventDefault()
     run(async () => supabase!.from('edicoes').insert({
@@ -98,7 +97,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       <label>Número (opcional)<input value={ed.numero} onChange={e => setEd({ ...ed, numero: e.target.value })} /></label>
       <label>Preço sugerido (R$)<input inputMode="decimal" value={ed.preco} onChange={e => setEd({ ...ed, preco: e.target.value })} /></label>
       
-      {/* Regra 5: Selecionar se o produto é do coletivo ou de uma pessoa */}
       <label>Proprietário do produto
         <select value={ed.proprietario_id} onChange={e => setEd({ ...ed, proprietario_id: e.target.value })}>
           <option value="">Coletivo (Produto padrão)</option>
@@ -143,6 +141,43 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       <label>Data<input type="date" value={ev.data} onChange={e => setEv({ ...ev, data: e.target.value })} /></label>
       <button>Salvar evento</button>
     </form>
+
+    <h3>Vincular Produtos aos Eventos</h3>
+    {d.eventos?.map(evItem => (
+      <div key={evItem.id} style={{ border: '1px solid #ddd', padding: '10px', marginBottom: '10px', borderRadius: '6px' }}>
+        <strong>{evItem.nome}</strong> ({evItem.data ?? 'Sem data'})
+        <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {d.edicoes?.filter(x => x.ativa !== false).map(ed => {
+            const vinculado = d.evento_produtos?.some(ep => ep.evento_id === evItem.id && ep.edicao_id === ed.id)
+            const dono = d.pessoas?.find(p => p.id === ed.proprietario_id)?.nome
+            return (
+              <button
+                key={ed.id}
+                type="button"
+                onClick={async () => {
+                  if (vinculado) {
+                    await supabase!.from('evento_produtos').delete().eq('evento_id', evItem.id).eq('edicao_id', ed.id)
+                  } else {
+                    await supabase!.from('evento_produtos').insert({ evento_id: evItem.id, edicao_id: ed.id })
+                  }
+                  onOk()
+                }}
+                style={{
+                  background: vinculado ? '#2B6CB0' : '#E2E8F0',
+                  color: vinculado ? '#FFF' : '#2D3748',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                {vinculado ? '✓ ' : '+ '} {ed.titulo} {dono ? `(${dono})` : '(Coletivo)'}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    ))}
 
     <form onSubmit={novaPe}>
       <h2>Nova pessoa</h2>
@@ -210,7 +245,7 @@ export function Estoque({ d, onOk }: { d: Dados; onOk: () => void }) {
         origem_id: pO ? f.o : '',
         destino_id: pD ? f.d : '',
         qtd: +f.q,
-        em_nome_de: f.em_nome_de || null, // Regra 1: Passa a pessoa recebedora da cortesia
+        em_nome_de: f.em_nome_de || null,
         obs: f.obs
       }).then(ok => ok && setF(vazio))
     }}>
@@ -231,7 +266,6 @@ export function Estoque({ d, onOk }: { d: Dados; onOk: () => void }) {
       {pO && locais(f.o, 'Sai de')}
       {pD && locais(f.d, 'Vai para')}
 
-      {/* Regra 1: Selecionar quem recebeu se o tipo for Cortesia */}
       {f.tipo === 'cortesia' && (
         <label>Cortesia para quem?
           <select value={f.em_nome_de} onChange={set('em_nome_de')} required>
