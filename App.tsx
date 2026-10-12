@@ -1,4 +1,4 @@
-import logoImg from './logo.png'
+import logoImg from '../logo.png'
 import { useEffect, useState } from 'react'
 import { useEnvio, Aviso } from './envio'
 import { Cadastros, Estoque } from './Extras'
