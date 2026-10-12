@@ -43,7 +43,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [produtosEvSelecionados, setProdutosEvSelecionados] = useState<string[]>([])
   const [eventoEmEdicao, setEventoEmEdicao] = useState<string | null>(null)
   
-  // Estado para criar produto rápido direto no evento
   const [mostrarNovoProdRapido, setMostrarNovoProdRapido] = useState(false)
   const [prodRapido, setProdRapido] = useState({ titulo: '', preco: '', proprietario_id: '' })
 
@@ -69,7 +68,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
     }), () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '' }))
   }
 
-  // Função para criar o produto rápido inline sem fechar a criação do evento
   const criarProdutoRapidoInline = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!prodRapido.titulo) return
@@ -88,8 +86,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       if (error) {
         setErro(error.message)
       } else if (data) {
-        // Marca automaticamente o novo produto para o evento atual
-        setProdutosEvSelecionados(prev => [...prev, data.id])
+        setProdutosEvSelecionados(prev => [...prev, String(data.id)])
         setProdRapido({ titulo: '', preco: '', proprietario_id: '' })
         setMostrarNovoProdRapido(false)
         setOk('Produto criado e adicionado ao evento!')
@@ -131,8 +128,9 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   }
 
   const toggleProdutoCriacao = (edicaoId: string) => {
+    const idStr = String(edicaoId)
     setProdutosEvSelecionados(prev =>
-      prev.includes(edicaoId) ? prev.filter(id => id !== edicaoId) : [...prev, edicaoId]
+      prev.includes(idStr) ? prev.filter(id => id !== idStr) : [...prev, idStr]
     )
   }
 
@@ -165,7 +163,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
     <h3>Edições / Produtos</h3>
     <ul>
       {d.edicoes?.map(x => {
-        const dono = d.pessoas?.find(p => p.id === x.proprietario_id)?.nome
+        const dono = d.pessoas?.find(p => String(p.id) === String(x.proprietario_id))?.nome
         return (
           <li key={x.id}>
             {x.titulo} {dono ? `(De: ${dono})` : '(Coletivo)'} {x.ativa === false && '(arquivada)'}{' '}
@@ -191,7 +189,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       })}
     </ul>
 
-    {/* Form de Criação de Evento com Seleção e Criação Rápida de Produtos */}
     <form onSubmit={novoEv}>
       <h2>Nova feira / evento</h2>
       <label>Nome<input value={ev.nome} onChange={e => setEv({ ...ev, nome: e.target.value })} required /></label>
@@ -209,7 +206,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
           </button>
         </div>
 
-        {/* Formulário Rápido Inline para Criar Produto sem Sair do Evento */}
         {mostrarNovoProdRapido && (
           <div style={{ background: '#F7FAFC', border: '1px solid #CBD5E0', padding: '12px', borderRadius: '6px', marginBottom: '12px' }}>
             <h4 style={{ margin: '0 0 8px 0' }}>Novo produto para o sistema</h4>
@@ -240,16 +236,15 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
           </div>
         )}
 
-        {/* Seleção dos Produtos com Botões */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
           {d.edicoes?.filter(x => x.ativa !== false).map(edItem => {
-            const marcado = produtosEvSelecionados.includes(edItem.id)
-            const dono = d.pessoas?.find(p => p.id === edItem.proprietario_id)?.nome
+            const marcado = produtosEvSelecionados.includes(String(edItem.id))
+            const dono = d.pessoas?.find(p => String(p.id) === String(edItem.proprietario_id))?.nome
             return (
               <button
                 key={edItem.id}
                 type="button"
-                onClick={() => toggleProdutoCriacao(edItem.id)}
+                onClick={() => toggleProdutoCriacao(String(edItem.id))}
                 style={{
                   background: marcado ? '#2B6CB0' : '#E2E8F0',
                   color: marcado ? '#FFF' : '#2D3748',
@@ -269,18 +264,17 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       <button>Salvar evento</button>
     </form>
 
-    {/* Lista de Eventos Cadastrados */}
     <h3>Eventos Cadastrados</h3>
     <ul style={{ listStyle: 'none', padding: 0 }}>
       {d.eventos?.map(x => {
-        const estaEditando = eventoEmEdicao === x.id
+        const estaEditando = eventoEmEdicao === String(x.id)
         return (
           <li key={x.id} style={{ border: '1px solid #E2E8F0', padding: '12px', marginBottom: '10px', borderRadius: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <strong>{x.nome}</strong> {x.data ? `— ${x.data}` : ''}
               </div>
-              <button type="button" onClick={() => setEventoEmEdicao(estaEditando ? null : x.id)}>
+              <button type="button" onClick={() => setEventoEmEdicao(estaEditando ? null : String(x.id))}>
                 {estaEditando ? 'Fechar Edição' : 'Editar Produtos do Evento'}
               </button>
             </div>
@@ -292,17 +286,25 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {d.edicoes?.filter(e => e.ativa !== false).map(edItem => {
-                    const vinculado = d.evento_produtos?.some(ep => ep.evento_id === x.id && ep.edicao_id === edItem.id)
-                    const dono = d.pessoas?.find(p => p.id === edItem.proprietario_id)?.nome
+                    const vinculado = d.evento_produtos?.some(
+                      ep => String(ep.evento_id) === String(x.id) && String(ep.edicao_id) === String(edItem.id)
+                    )
+                    const dono = d.pessoas?.find(p => String(p.id) === String(edItem.proprietario_id))?.nome
                     return (
                       <button
                         key={edItem.id}
                         type="button"
                         onClick={async () => {
                           if (vinculado) {
-                            await supabase!.from('evento_produtos').delete().eq('evento_id', x.id).eq('edicao_id', edItem.id)
+                            await supabase!
+                              .from('evento_produtos')
+                              .delete()
+                              .eq('evento_id', x.id)
+                              .eq('edicao_id', edItem.id)
                           } else {
-                            await supabase!.from('evento_produtos').insert({ evento_id: x.id, edicao_id: edItem.id })
+                            await supabase!
+                              .from('evento_produtos')
+                              .insert({ evento_id: x.id, edicao_id: edItem.id })
                           }
                           onOk()
                         }}
