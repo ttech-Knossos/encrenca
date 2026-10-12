@@ -15,7 +15,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [destino, setDestino] = useState('coletivo')
   const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
 
-  // Filtra produtos vinculados ao evento ou exibe todos se nenhum evento estiver selecionado
   const edicoesExibidas = d.edicoes?.filter(ed => {
     if (ed.ativa === false) return false
     if (!eventoId) return true
@@ -47,7 +46,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
   function submit(e: React.FormEvent) {
     e.preventDefault()
 
-    // Identifica o local de saída: tenta o local do evento, senão pega a central ou o primeiro local disponível
     const localEvento = d.locais?.find(l => String(l.evento_id) === String(eventoId))?.id
     const localCentral = d.locais?.find(l => l.tipo === 'central')?.id
     const localPadrao = localEvento || localCentral || d.locais?.[0]?.id || ''
@@ -68,7 +66,7 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
       return
     }
 
-    const respPadrao = d.pessoas?.find(p => p.ativa)?.id || ''
+    const respPadrao = d.pessoas?.find(p => p.ativa !== false)?.id || ''
 
     enviar('registrar_venda', {
       responsavel_id: respPadrao,
