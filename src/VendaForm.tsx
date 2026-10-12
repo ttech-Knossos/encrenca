@@ -15,16 +15,13 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [destino, setDestino] = useState('coletivo')
   const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
 
-  // Filtra produtos vinculados ao evento selecionado. Se nenhum evento for selecionado, exibe todos os produtos ativos.
+  // Filtra produtos vinculados ao evento ou exibe todos se nenhum evento estiver selecionado
   const edicoesExibidas = d.edicoes?.filter(ed => {
     if (ed.ativa === false) return false
     if (!eventoId) return true
-    
-    // Procura na tabela evento_produtos se existe vinculação com o evento selecionado
-    const estaNoEvento = d.evento_produtos?.some(
+    return d.evento_produtos?.some(
       ep => String(ep.evento_id) === String(eventoId) && String(ep.edicao_id) === String(ed.id)
     )
-    return estaNoEvento
   })
 
   const alterarQtd = (edicaoId: string, delta: number) => {
@@ -39,7 +36,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
     })
   }
 
-  // Cálculo automático do subtotal bruto
   const subtotalCentavos = Object.entries(carrinho).reduce((acc, [edId, qtd]) => {
     const ed = d.edicoes?.find(e => String(e.id) === String(edId))
     return acc + (ed?.preco_sugerido_centavos ?? 0) * qtd
@@ -51,12 +47,16 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
   function submit(e: React.FormEvent) {
     e.preventDefault()
 
+    // Identifica o local de saída: tenta o local do evento, senão pega a central ou o primeiro local disponível
+    const localEvento = d.locais?.find(l => String(l.evento_id) === String(eventoId))?.id
+    const localCentral = d.locais?.find(l => l.tipo === 'central')?.id
+    const localPadrao = localEvento || localCentral || d.locais?.[0]?.id || ''
+
     const itensEnvio = Object.entries(carrinho).map(([edId, qtd]) => {
       const ed = d.edicoes?.find(e => String(e.id) === String(edId))
-      const orig = d.locais?.find(l => String(l.evento_id) === String(eventoId))?.id ?? d.locais?.find(l => l.tipo === 'central')?.id ?? d.locais?.[0]?.id ?? ''
       return {
         edicao_id: edId,
-        origem_id: orig,
+        origem_id: localPadrao,
         qtd,
         preco_centavos: ed?.preco_sugerido_centavos ?? 0,
         desconto_centavos: 0
@@ -64,7 +64,7 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
     })
 
     if (itensEnvio.length === 0) {
-      alert('Selecione ao menos um produto para a venda.')
+      alert('Selecione ao menos um produto para registrar a venda.')
       return
     }
 
@@ -102,7 +102,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
     <form onSubmit={submit}>
       <h2>Registrar venda</h2>
 
-      {/* 1. Selecionar o Evento */}
       <label>
         Evento
         <select value={eventoId} onChange={e => { setEventoId(e.target.value); setCarrinho({}); }}>
@@ -113,7 +112,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
         </select>
       </label>
 
-      {/* 2. Lista de Produtos com + e - */}
       <h3>Produtos</h3>
       {edicoesExibidas && edicoesExibidas.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px', margin: '10px 0' }}>
@@ -140,7 +138,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
         </p>
       )}
 
-      {/* 3. Desconto e Valor Total Calculado */}
       <label>
         Desconto (R$, opcional)
         <input inputMode="decimal" value={descontoStr} onChange={e => setDescontoStr(e.target.value)} placeholder="0,00" />
@@ -150,7 +147,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
         <h3 style={{ margin: 0 }}>Valor Total: R$ {(totalCentavos / 100).toFixed(2).replace('.', ',')}</h3>
       </div>
 
-      {/* 4. Forma de Pagamento e Destino */}
       <label>
         Forma de pagamento
         <select value={meio} onChange={e => setMeio(e.target.value)}>
@@ -174,7 +170,6 @@ export function VendaForm({ d, onOk }: { d: Dados; onOk: () => void }) {
       <Aviso erro={erro} incerto={incerto} descartar={descartar} />
       {msg && <div className="ok" role="status">{msg}</div>}
       
-      {/* 5. Salvar Venda */}
       <button disabled={env} style={{ width: '100%', padding: '12px', marginTop: '10px', fontSize: '16px' }}>
         {env ? 'Salvando…' : 'Salvar Venda'}
       </button>
