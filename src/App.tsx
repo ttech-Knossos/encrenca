@@ -11,6 +11,9 @@ const fmtMoney = (c: number | undefined | null) => {
   return `R$ ${(c / 100).toFixed(2).replace('.', ',')}`
 }
 
+// Logo SVG embutida como fallback garantido para a logo.png não falhar jamais
+const LOGO_FALLBACK = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%23C5FF27'/><path d='M20 30h60v10H20zM20 48h60v10H20zM20 66h40v10H20z' fill='%23000000'/></svg>"
+
 export default function App() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
@@ -32,7 +35,8 @@ export default function App() {
   const [filtroEstoqueDono, setFiltroEstoqueDono] = useState<string>('todos')
   const [filtroEstoqueLocal, setFiltroEstoqueLocal] = useState<string>('todos')
 
-  // Formulário de Repasse
+  // Formulário de Repasse (Coletivo -> Pessoa ou Pessoa -> Coletivo)
+  const [origemRepasse, setOrigemRepasse] = useState<'coletivo_para_pessoa' | 'pessoa_para_coletivo'>('coletivo_para_pessoa')
   const [repassePessoaId, setRepassePessoaId] = useState('')
   const [repasseValor, setRepasseValor] = useState('')
   const [repasseObs, setRepasseObs] = useState('')
@@ -110,10 +114,14 @@ export default function App() {
     const valorCentavos = Math.round(parseFloat(repasseValor.replace(',', '.')) * 100)
 
     try {
+      const obsFinal = origemRepasse === 'coletivo_para_pessoa'
+        ? `Repasse do Coletivo para Pessoa: ${repasseObs || 'Pagamento referente a vendas do coletivo'}`
+        : `Repasse da Pessoa para o Coletivo: ${repasseObs || 'Acerto de caixa'}`
+
       const { error } = await supabase!.from('repasses').insert({
         pessoa_id: repassePessoaId,
         valor_centavos: valorCentavos,
-        obs: repasseObs || 'Repasse realizado'
+        obs: obsFinal
       })
 
       if (error) {
@@ -205,7 +213,7 @@ export default function App() {
       <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', background: '#FAF7F0', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.src = LOGO_FALLBACK }} />
             <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
           </div>
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
@@ -282,7 +290,7 @@ export default function App() {
 
   return (
     <div style={{ background: '#FAF7F0', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-      {/* Injeção de CSS direto no componente para garantir aplicação */}
+      {/* Injeção de CSS direto no componente */}
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background-color: #FAF7F0; font-family: sans-serif; }
@@ -392,10 +400,15 @@ export default function App() {
         }
       `}</style>
 
-      {/* Topo Roxo */}
+      {/* Topo Roxo com Logo Garantida */}
       <header className="header-top">
-        <div style={{ width: '40px', height: '40px', border: '2px dashed #C5FF27', borderRadius: '6px', background: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+        <div style={{ width: '42px', height: '42px', border: '2px dashed #C5FF27', borderRadius: '6px', background: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+            onError={(e) => { e.currentTarget.src = LOGO_FALLBACK }} 
+          />
         </div>
         <div style={{ color: '#C5FF27', fontSize: '24px', fontWeight: '900', letterSpacing: '2px' }}>DESENCRENCA</div>
         <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
@@ -735,36 +748,53 @@ export default function App() {
           </div>
         )}
 
-        {/* ABA REGISTRAR REPASSE */}
+        {/* ABA REGISTRAR REPASSE (SUPORTA COLETIVO -> PESSOA E PESSOA -> COLETIVO) */}
         {aba === 'repasses' && (
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Registrar Repasse para Pessoa Cadastrada</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Registrar Repasse Financeiro</h2>
             {repasseMsg && <div style={{ background: '#DCFCE7', color: '#166534', padding: '10px', borderRadius: '6px', marginBottom: '12px', border: '1px solid #86EFAC' }}>{repasseMsg}</div>}
 
-            <form onSubmit={handleSalvarRepasse} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '600px' }}>
+            <form onSubmit={handleSalvarRepasse} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '600px', background: '#FFF', border: '2px solid #000', padding: '18px', borderRadius: '8px', boxShadow: '2px 2px 0 #000' }}>
+              
               <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
-                Pessoa beneficiária do repasse
+                Tipo / Fluxo do Repasse:
+                <select value={origemRepasse} onChange={e => setOrigemRepasse(e.target.value as any)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px', background: '#FAF7F0', fontWeight: 'bold' }}>
+                  <option value="coletivo_para_pessoa">Coletivo (Desencrenca) ➔ Repassa para uma Pessoa</option>
+                  <option value="pessoa_para_coletivo">Pessoa ➔ Repassa dinheiro ao Coletivo</option>
+                </select>
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Pessoa Beneficiária / Envolvida
                 <select value={repassePessoaId} onChange={e => setRepassePessoaId(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
                   <option value="">Selecione a pessoa</option>
                   {d.pessoas?.filter(p => p.ativa !== false).map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.nome} (Devido atual: {fmtMoney(valoresDevidosPorPessoa[String(p.id)] || 0)})
+                      {p.nome} (Saldo devido a ela: {fmtMoney(valoresDevidosPorPessoa[String(p.id)] || 0)})
                     </option>
                   ))}
                 </select>
               </label>
 
+              {repassePessoaId && (
+                <div style={{ padding: '10px', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
+                  A ser repassado pelo Coletivo a esta pessoa: {fmtMoney(valoresDevidosPorPessoa[String(repassePessoaId)] || 0)}
+                </div>
+              )}
+
               <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
-                Valor repassado (R$)
+                Valor do Repasse (R$)
                 <input inputMode="decimal" placeholder="0,00" value={repasseValor} onChange={e => setRepasseValor(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
               </label>
 
               <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
-                Observação (opcional)
-                <input placeholder="Ex: Transferência via Pix realizada" value={repasseObs} onChange={e => setRepasseObs(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+                Observação / Detalhes (opcional)
+                <input placeholder="Ex: Pix relativo às vendas de zines da feira X" value={repasseObs} onChange={e => setRepasseObs(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
               </label>
 
-              <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>Salvar Repasse</button>
+              <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000', fontSize: '14px' }}>
+                Salvar Repasse
+              </button>
             </form>
           </div>
         )}
