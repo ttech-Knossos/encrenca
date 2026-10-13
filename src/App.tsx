@@ -24,9 +24,6 @@ export default function App() {
 
   // Expansores da tela Visão Geral
   const [mostrarMaisEdicoes, setMostrarMaisEdicoes] = useState(false)
-  const [mostrarEstoqueProduto, setMostrarEstoqueProduto] = useState(false)
-  const [mostrarDinheiroPessoas, setMostrarDinheiroPessoas] = useState(false)
-  const [mostrarProdsResponsavel, setMostrarProdsResponsavel] = useState(false)
 
   // Expansores e Filtros da Lista de Vendas
   const [vendasAbertas, setVendasAbertas] = useState<Record<string, boolean>>({})
@@ -506,10 +503,10 @@ export default function App() {
         }
       `}</style>
 
-      {/* Header Roxo Perfeitamente Centralizado com a Logo Exata */}
+      {/* Header Roxo com Logo Exata e Centralizada */}
       <header className="header-top">
         <div className="logo-container">
-          <img src="/logo_2.png" alt="Logo Desencrenca" className="logo-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img src="/logo_3.png" alt="Logo Desencrenca" className="logo-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
           <div className="logo-title">DESENCRENCA</div>
         </div>
         <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
@@ -526,7 +523,7 @@ export default function App() {
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros Gerais</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL COMPLETO COM TODAS AS VISUALIZAÇÕES */}
+        {/* VISÃO GERAL / PAINEL COMPLETO RESTAURADO */}
         {aba === 'visao_geral' && (
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Painel</h2>
@@ -604,50 +601,72 @@ export default function App() {
               </div>
             </div>
 
-            {/* Visualizações Detalhadas Adicionais na Visão Geral */}
-            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '1050px' }}>
+            {/* BLOCOS DETALHADOS RESTAURADOS NA VISÃO GERAL */}
+            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '1150px' }}>
               
-              {/* Bloco 1: Dinheiro Devido / Sob Responsabilidade por Pessoa */}
+              {/* Bloco 1: Valores Devidos a Pessoas Detalhado */}
               <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', boxShadow: '2px 2px 0 #000' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Valores Devidos a Pessoas (Acumulado)</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {d.pessoas?.filter(p => p.ativa !== false).map(p => {
                     const devido = valoresDevidosPorPessoa[String(p.id)] || 0
-                    if (devido <= 0) return null
                     return (
-                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: '#FAF7F0', border: '1px solid #CCC', borderRadius: '4px', fontSize: '13px' }}>
+                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 10px', background: '#FAF7F0', border: '1px solid #CCC', borderRadius: '6px', fontSize: '13px' }}>
                         <span><strong>{p.nome}</strong></span>
-                        <span style={{ color: '#E53E3E', fontWeight: 'bold' }}>{fmtMoney(devido)}</span>
+                        <span style={{ color: devido > 0 ? '#E53E3E' : '#2F855A', fontWeight: 'bold' }}>{fmtMoney(devido)}</span>
                       </div>
                     )
                   })}
-                  {Object.values(valoresDevidosPorPessoa).every(v => v <= 0) && (
-                    <div style={{ fontSize: '13px', color: '#666' }}>Nenhum valor pendente para pessoas no momento.</div>
+                  {(!d.pessoas || d.pessoas.length === 0) && (
+                    <div style={{ fontSize: '13px', color: '#666' }}>Nenhuma pessoa cadastrada.</div>
                   )}
                 </div>
               </div>
 
-              {/* Bloco 2: Produtos por Responsável */}
+              {/* Bloco 2: Resumo de Produtos por Responsável */}
               <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', boxShadow: '2px 2px 0 #000' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Resumo de Produtos por Responsável</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div onClick={() => irParaEstoqueComFiltro('coletivo')} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: '#FAF7F0', border: '1px solid #CCC', borderRadius: '4px', fontSize: '13px', cursor: 'pointer' }}>
-                    <span><strong>Coletivo (Encrenca)</strong></span>
-                    <span>{edicoesEncrenca.length} produtos ➔</span>
+                  <div onClick={() => irParaEstoqueComFiltro('coletivo')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FAF7F0', border: '1px solid #CCC', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                    <div>
+                      <strong>Coletivo (Encrenca)</strong>
+                      <div style={{ fontSize: '11px', color: '#666' }}>{edicoesEncrenca.length} produtos cadastrados</div>
+                    </div>
+                    <span style={{ fontWeight: 'bold', color: '#7C3AED' }}>Ver Estoque ➔</span>
                   </div>
+
                   {d.pessoas?.filter(p => p.ativa !== false).map(p => {
                     const prodsPessoa = d.edicoes?.filter(e => String(e.proprietario_id) === String(p.id)) || []
-                    if (prodsPessoa.length === 0) return null
                     return (
-                      <div key={p.id} onClick={() => irParaEstoqueComFiltro(p.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: '#FAF7F0', border: '1px solid #CCC', borderRadius: '4px', fontSize: '13px', cursor: 'pointer' }}>
-                        <span><strong>{p.nome}</strong></span>
-                        <span>{prodsPessoa.length} produtos ➔</span>
+                      <div key={p.id} onClick={() => irParaEstoqueComFiltro(p.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: '#FAF7F0', border: '1px solid #CCC', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                        <div>
+                          <strong>{p.nome}</strong>
+                          <div style={{ fontSize: '11px', color: '#666' }}>{prodsPessoa.length} produtos cadastrados</div>
+                        </div>
+                        <span style={{ fontWeight: 'bold', color: '#7C3AED' }}>Ver Estoque ➔</span>
                       </div>
                     )
                   })}
                 </div>
               </div>
 
+            </div>
+
+            {/* Bloco 3: Visão Geral de Estoque por Local */}
+            <div style={{ marginTop: '20px', background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', maxWidth: '1150px', boxShadow: '2px 2px 0 #000' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Visão Geral de Estoque por Local</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+                {d.locais?.map(loc => {
+                  const prodsNoLocal = d.saldos?.filter(s => String(s.local_id) === String(loc.id)) || []
+                  const totalUnidadesLocal = prodsNoLocal.reduce((acc, curr) => acc + (curr.qtd || 0), 0)
+                  return (
+                    <div key={loc.id} style={{ border: '1px solid #CCC', padding: '10px', borderRadius: '6px', background: '#FAF7F0' }}>
+                      <strong>{loc.nome}</strong>
+                      <div style={{ fontSize: '13px', marginTop: '4px', color: '#333' }}>Total em estoque: <strong>{totalUnidadesLocal} un</strong></div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             <p style={{ fontSize: '11px', color: '#666', marginTop: '16px', marginBottom: '24px' }}>
