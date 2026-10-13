@@ -1,75 +1,185 @@
 :root {
-  --bg-color: #f7f6f0;
-  --card-bg: #ffffff;
-  --primary-color: #a3e635;
-  --border-color: #000000;
-  --text-color: #1a1a1a;
+  --bg-app: #FAF7F0;
+  --header-bg: #8A41F6;
+  --lime-green: #C5FF27;
+  --border-black: #000000;
+  --card-bg: #FFFFFF;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  padding: 20px 16px;
+  background-color: var(--bg-app);
+  color: #000000;
+}
+
+/* Cabeçalho Superior */
+.top-header {
+  background-color: var(--header-bg);
+  min-height: 60px;
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  border-bottom: 2px solid var(--border-black);
 }
 
-/* Container principal equilibrado para tela de computador/notebook */
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+.top-header .brand-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-header img.logo {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
+
+.top-header .brand-title {
+  color: var(--lime-green);
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.btn-sair {
   background: var(--card-bg);
-  padding: 24px 32px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 4px 4px 0px #000000;
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 2px 2px 0px #000;
 }
 
-/* Barra de navegação original em abas horizontais lado a lado */
-nav {
+/* Área Principal - Ocupa bem o espaço em Notebooks */
+.main-wrapper {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Abas Superiores - Lado a Lado no Notebook */
+nav.menu-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #e2e8f0;
 }
 
-nav button {
-  width: auto;
-  padding: 8px 16px;
+nav.menu-tabs button {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
   border-radius: 8px;
-  border: 2px solid var(--border-color);
-  background: #edf2f7;
-  cursor: pointer;
+  padding: 10px 18px;
   font-weight: bold;
   font-size: 14px;
-  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px #000;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-nav button:hover {
-  background: #e2e8f0;
+nav.menu-tabs button.ativo {
+  background: #A3E635;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.3);
 }
 
-nav button.ativo {
-  background: var(--primary-color);
+/* Títulos do Painel */
+.panel-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+/* Grid de Cards - Ajuste Dinâmico Responsivo */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  background: var(--card-bg);
+  border: 2px solid var(--border-black);
+  border-radius: 8px;
+  padding: 12px 16px;
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Formulários e campos com espaçamento original */
+.metric-card .label {
+  font-size: 12px;
+  color: #4A5568;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.metric-card .value {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.disclaimer {
+  font-size: 12px;
+  color: #718096;
+  margin-bottom: 24px;
+}
+
+/* Botão Exportar CSV */
+.btn-export {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: bold;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  box-shadow: 2px 2px 0px #000;
+  display: inline-block;
+}
+
+/* Tabelas e Contêineres */
+.table-container {
+  width: 100%;
+  max-width: 650px;
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  border: 2px solid var(--border-black);
+}
+
+table.data-table th, table.data-table td {
+  border: 1px solid #CBD5E0;
+  padding: 10px 14px;
+  font-size: 14px;
+  text-align: left;
+}
+
+table.data-table th {
+  background: #EDF2F7;
+  font-weight: bold;
+}
+
+/* Formulários */
 form {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  margin-bottom: 24px;
+  max-width: 700px;
 }
 
 label {
@@ -81,66 +191,65 @@ label {
 }
 
 input, select {
-  width: 100%;
   padding: 10px 12px;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--border-black);
   border-radius: 6px;
-  font-size: 15px;
-  background: #ffffff;
+  font-size: 14px;
+  width: 100%;
 }
 
-button {
-  cursor: pointer;
-}
-
-button[type="submit"], .btn-primary {
-  background: var(--primary-color);
+button[type="submit"] {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  padding: 12px;
   font-weight: bold;
-  padding: 12px 18px;
-  border: 2px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 16px;
+  font-size: 15px;
+  cursor: pointer;
   box-shadow: 2px 2px 0px #000;
 }
 
-.ok {
-  background: #dcfce7;
-  color: #166534;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #86efac;
-  margin-bottom: 10px;
-}
-
-.erro {
-  background: #fee2e2;
-  color: #991b1b;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #fca5a5;
-  margin-bottom: 10px;
-}
-
-/* Ajustes para dispositivos móveis */
+/* --- AJUSTES EXCLUSIVOS PARA DISPOSITIVOS MÓVEIS (CELULAR) --- */
 @media (max-width: 768px) {
-  body {
-    padding: 8px 4px;
+  .top-header {
+    padding: 8px 12px;
   }
 
-  .container {
-    padding: 16px 12px;
+  .top-header .brand-title {
+    font-size: 18px;
   }
 
-  nav {
+  .main-wrapper {
+    padding: 12px;
+  }
+
+  nav.menu-tabs {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
 
-  nav button {
-    width: 100%;
-    text-align: center;
+  nav.menu-tabs button {
     padding: 8px 10px;
-    font-size: 13px;
+    font-size: 12px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .metric-card {
+    padding: 10px;
+  }
+
+  .metric-card .value {
+    font-size: 16px;
+  }
+
+  .table-container {
+    max-width: 100%;
   }
 }
