@@ -8,7 +8,10 @@ import { Cadastros, Estoque } from './Extras'
 type Row = Record<string, any>
 type Dados = Record<string, Row[]>
 
-const fmtMoney = (c: number) => `R$ ${(c / 100).toFixed(2).replace('.', ',')}`
+const fmtMoney = (c: number | undefined | null) => {
+  if (c === undefined || c === null || isNaN(c)) return 'R$ 0,00'
+  return `R$ ${(c / 100).toFixed(2).replace('.', ',')}`
+}
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
@@ -68,9 +71,12 @@ export default function App() {
 
   if (!session) {
     return (
-      <div style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
-          <h2 style={{ textAlign: 'center', marginBottom: '8px' }}>ENCRENCA</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
+            <img src="/logo.png" alt="Logo" style={{ height: '32px', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
+          </div>
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
           
           {loginErro && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px', borderRadius: '6px', fontSize: '13px', marginBottom: '12px' }}>{loginErro}</div>}
@@ -87,20 +93,28 @@ export default function App() {
 
   if (erro) return <div style={{ padding: '20px', color: 'red' }}>{erro}</div>
 
-  // Cálculos do Painel
+  // Métricas do Painel
   const totalExemplaresEstoque = d.saldos?.reduce((acc, curr) => acc + (curr.qtd || 0), 0) || 0
   const exemplaresVendidos = d.vendas?.reduce((acc, v) => acc + (v.qtd_itens || 1), 0) || 0
+  const valorProdutosVendidos = d.vendas?.reduce((acc, v) => acc + (v.valor_total_centavos || 0), 0) || 0
+  const totalRecebidoClientes = d.vendas?.reduce((acc, v) => acc + (v.valor_pago_centavos || 0), 0) || 0
+  const pendenteClientes = Math.max(0, valorProdutosVendidos - totalRecebidoClientes)
 
   return (
     <div>
-      {/* Cabeçalho Roxo Superior */}
+      {/* Faixa Roxa Superior com Logo e Título DESENCRENCA */}
       <header className="top-header">
-        <div className="brand-title">ENCRENCA</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="brand-logo-box">
+            <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          </div>
+          <div className="brand-title">DESENCRENCA</div>
+        </div>
         <button onClick={handleLogout} className="btn-sair">Sair</button>
       </header>
 
       <div className="main-wrapper">
-        {/* Menu de Abas Verdes */}
+        {/* Navegação por Abas Verdes */}
         <nav className="menu-tabs">
           <button onClick={() => setAba('visao_geral')} className={aba === 'visao_geral' ? 'ativo' : ''}>Visão geral</button>
           <button onClick={() => setAba('venda')} className={aba === 'venda' ? 'ativo' : ''}>Registrar venda</button>
@@ -110,15 +124,15 @@ export default function App() {
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL EXACTO DA IMAGEM DE REFERÊNCIA */}
+        {/* ESTRUTURA DO PAINEL DA SUA IMAGEM */}
         {aba === 'visao_geral' && (
           <div>
             <h2 className="panel-title">Painel</h2>
 
             {/* Linha 1 de Cards */}
-            <div className="cards-grid">
+            <div className="cards-row">
               <div className="metric-card">
-                <div className="label">Exemplares em estoque (agora)</div>
+                <div className="label">Exemplares em estoque<br/>(agora)</div>
                 <div className="value">{totalExemplaresEstoque}</div>
               </div>
               <div className="metric-card">
@@ -126,36 +140,36 @@ export default function App() {
                 <div className="value">{exemplaresVendidos}</div>
               </div>
               <div className="metric-card">
-                <div className="label">Valor de produtos vendidos</div>
-                <div className="value">R$ 240,00</div>
+                <div className="label">Valor de produtos<br/>vendidos</div>
+                <div className="value">{fmtMoney(valorProdutosVendidos)}</div>
               </div>
               <div className="metric-card">
                 <div className="label">Frete cobrado</div>
                 <div className="value">R$ 0,00</div>
               </div>
               <div className="metric-card">
-                <div className="label">Total recebido de clientes</div>
-                <div className="value">R$ 200,00</div>
+                <div className="label">Total recebido de<br/>clientes</div>
+                <div className="value">{fmtMoney(totalRecebidoClientes)}</div>
               </div>
             </div>
 
             {/* Linha 2 de Cards */}
-            <div className="cards-grid">
+            <div className="cards-row">
               <div className="metric-card">
-                <div className="label">Pendente de clientes (agora)</div>
-                <div className="value">R$ 40,00</div>
+                <div className="label">Pendente de clientes<br/>(agora)</div>
+                <div className="value">{fmtMoney(pendenteClientes)}</div>
               </div>
               <div className="metric-card">
-                <div className="label">Recebido direto pelo coletivo</div>
-                <div className="value">R$ 130,00</div>
+                <div className="label">Recebido direto pelo<br/>coletivo</div>
+                <div className="value">{fmtMoney(totalRecebidoClientes)}</div>
               </div>
               <div className="metric-card">
                 <div className="label">Repasses realizados</div>
                 <div className="value">R$ 35,00</div>
               </div>
               <div className="metric-card">
-                <div className="label">Total recebido pelo coletivo</div>
-                <div className="value">R$ 165,00</div>
+                <div className="label">Total recebido pelo<br/>coletivo</div>
+                <div className="value">{fmtMoney(totalRecebidoClientes)}</div>
               </div>
             </div>
 
@@ -164,7 +178,7 @@ export default function App() {
             </div>
 
             {/* Tabela Estoque por local */}
-            <h3 className="panel-title" style={{ marginTop: '20px' }}>Estoque por local (posição agora)</h3>
+            <h3 className="panel-title" style={{ marginTop: '24px' }}>Estoque por local (posição agora)</h3>
             <button className="btn-export">Exportar estoque (CSV)</button>
 
             <div className="table-container">
@@ -193,7 +207,7 @@ export default function App() {
             </div>
 
             {/* Tabela Dinheiro sob responsabilidade */}
-            <h3 className="panel-title" style={{ marginTop: '20px' }}>Dinheiro sob responsabilidade das pessoas (posição agora)</h3>
+            <h3 className="panel-title" style={{ marginTop: '24px' }}>Dinheiro sob responsabilidade das pessoas (posição agora)</h3>
             <div className="table-container">
               <table className="data-table">
                 <thead>
@@ -210,9 +224,9 @@ export default function App() {
                     return (
                       <tr key={p.id}>
                         <td>{p.nome}</td>
-                        <td>{fin?.recebido_centavos ? fmtMoney(fin.recebido_centavos) : 'R$ 0,00'}</td>
-                        <td>{fin?.repassado_centavos ? fmtMoney(fin.repassado_centavos) : 'R$ 0,00'}</td>
-                        <td>{fin?.a_repassar_centavos ? fmtMoney(fin.a_repassar_centavos) : 'R$ 0,00'}</td>
+                        <td>{fmtMoney(fin?.recebido_centavos)}</td>
+                        <td>{fmtMoney(fin?.repassado_centavos)}</td>
+                        <td>{fmtMoney(fin?.a_repassar_centavos)}</td>
                       </tr>
                     )
                   })}
