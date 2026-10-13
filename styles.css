@@ -19,10 +19,10 @@ body {
   min-height: 100vh;
 }
 
-/* Header Roxo 100% */
+/* Header Roxo Superior */
 .top-header {
-  background-color: var(--header-purple);
-  min-height: 60px;
+  background-color: var(--header-purple) !important;
+  min-height: 64px;
   width: 100%;
   display: flex;
   align-items: center;
@@ -32,21 +32,22 @@ body {
 }
 
 .top-header .brand-logo-box {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border: 2px dashed var(--lime-green);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   overflow: hidden;
-  background: transparent;
+  background: #FFFFFF;
 }
 
 .top-header .brand-logo-box img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 
 .top-header .brand-title {
@@ -57,23 +58,28 @@ body {
   text-transform: uppercase;
 }
 
-/* Botão Sair Verde Limão */
-.btn-sair {
-  background: var(--lime-green);
-  color: #000000;
-  border: 2px solid var(--border-black);
-  border-radius: 6px;
-  padding: 6px 16px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 14px;
-  box-shadow: 2px 2px 0px #000000;
-  transition: transform 0.1s;
+/* Botão Sair - Verde Limão Forçado com Borda e Sombra */
+button.btn-sair, .btn-sair {
+  background-color: var(--lime-green) !important;
+  color: #000000 !important;
+  border: 2px solid var(--border-black) !important;
+  border-radius: 6px !important;
+  padding: 6px 16px !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  transition: transform 0.1s ease-in-out !important;
+  display: inline-block !important;
 }
 
-.btn-sair:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px #000000;
+button.btn-sair:hover, .btn-sair:hover {
+  background-color: #b3f01f !important;
+}
+
+button.btn-sair:active, .btn-sair:active {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0px #000000 !important;
 }
 
 /* Área Principal */
@@ -107,7 +113,7 @@ nav.menu-tabs button.ativo {
   color: #FFFFFF;
 }
 
-/* Painel e Cards em Linhas (Lado a Lado) */
+/* Painel e Cards em Grade Lado a Lado */
 .panel-title {
   font-size: 20px;
   font-weight: 800;
@@ -115,24 +121,22 @@ nav.menu-tabs button.ativo {
 }
 
 .cards-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-/* Card com largura definida para não esticar em barras na tela */
 .metric-card {
   background: var(--card-bg);
   border: 2px solid var(--border-black);
   border-radius: 8px;
-  padding: 10px 14px;
-  width: 210px;
-  min-height: 82px;
+  padding: 12px 14px;
   box-shadow: 2px 2px 0px #000;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-height: 90px;
 }
 
 .metric-card .label {
@@ -142,7 +146,7 @@ nav.menu-tabs button.ativo {
 }
 
 .metric-card .value {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 900;
 }
 
@@ -153,7 +157,7 @@ nav.menu-tabs button.ativo {
   margin-bottom: 24px;
 }
 
-/* Botões Neobrutalistas */
+/* Botões e Links */
 .btn-action {
   background: var(--lime-green);
   border: 2px solid var(--border-black);
@@ -166,7 +170,22 @@ nav.menu-tabs button.ativo {
   display: inline-block;
 }
 
-/* Tabelas e Caixas */
+.link-filtro {
+  background: none;
+  border: none;
+  color: #000;
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.link-filtro:hover {
+  color: #7C3AED;
+}
+
+/* Tabelas */
 .table-container {
   width: 100%;
   max-width: 650px;
@@ -227,7 +246,7 @@ button[type="submit"] {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Ajuste Responsivo Celular */
+/* Adaptabilidade Celular */
 @media (max-width: 768px) {
   .top-header {
     padding: 0 12px;
@@ -244,20 +263,4 @@ button[type="submit"] {
   nav.menu-tabs {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-
-  nav.menu-tabs button {
-    width: 100%;
-    text-align: center;
-  }
-
-  .metric-card {
-    width: calc(50% - 6px);
-  }
-
-  .table-container {
-    max-width: 100%;
-    overflow-x: auto;
-  }
-}
+    gap: 8
