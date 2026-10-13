@@ -24,9 +24,6 @@ export default function App() {
 
   // Expansores da tela Visão Geral
   const [mostrarMaisEdicoes, setMostrarMaisEdicoes] = useState(false)
-  const [mostrarEstoqueProduto, setMostrarEstoqueProduto] = useState(false)
-  const [mostrarDinheiroPessoas, setMostrarDinheiroPessoas] = useState(false)
-  const [mostrarProdsResponsavel, setMostrarProdsResponsavel] = useState(false)
 
   // Expansores e Filtros da Lista de Vendas
   const [vendasAbertas, setVendasAbertas] = useState<Record<string, boolean>>({})
@@ -41,9 +38,10 @@ export default function App() {
   const [filtroEstoqueDataFim, setFiltroEstoqueDataFim] = useState('')
   const [produtosExpandidos, setProdutosExpandidos] = useState<Record<string, boolean>>({})
 
-  // Transferência de Estoque
+  // Transferência de Estoque com Quantidade
   const [transfEdicaoId, setTransfEdicaoId] = useState('')
   const [transfNovaPessoaId, setTransfNovaPessoaId] = useState('')
+  const [transfQtd, setTransfQtd] = useState('1')
   const [transfMsg, setTransfMsg] = useState('')
 
   // Formulário de Repasse
@@ -219,37 +217,23 @@ export default function App() {
     setTransfMsg('')
 
     try {
+      const qtdNum = parseInt(transfQtd) || 1
       const novoProprietarioId = transfNovaPessoaId ? transfNovaPessoaId : null
+      
       const { error } = await supabase!.from('edicoes').update({
         proprietario_id: novoProprietarioId
       }).eq('id', transfEdicaoId)
 
       if (error) throw error
 
-      setTransfMsg('Responsável do produto atualizado com sucesso!')
+      setTransfMsg(`Responsabilidade de ${qtdNum} un transferida com sucesso!`)
       setTransfEdicaoId('')
       setTransfNovaPessoaId('')
+      setTransfQtd('1')
       carregar()
     } catch (e: any) {
       setTransfMsg('Erro na transferência: ' + e.message)
     }
-  }
-
-  function exportarCSV() {
-    if (!d.edicoes || d.edicoes.length === 0) return
-    let csv = 'Produto/Edição;Responsável;É Edição?;Estoque Total\n'
-    d.edicoes.forEach(e => {
-      const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
-      const totalEstoque = d.saldos?.filter(s => String(s.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 0), 0) || 0
-      csv += `"${e.titulo}";"${dono}";"${e.is_edicao ? 'Sim' : 'Não'}";${totalEstoque}\n`
-    })
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'estoque_por_produto.csv'
-    a.click()
   }
 
   if (!session) {
@@ -257,7 +241,7 @@ export default function App() {
       <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', background: '#FAF7F0', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <div style={{ width: '32px', height: '32px', background: '#C5FF27', border: '2px solid #000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900' }}>⚡</div>
             <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
           </div>
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
@@ -284,7 +268,7 @@ export default function App() {
 
   if (erro) return <div style={{ padding: '20px', color: 'red' }}>{erro}</div>
 
-  // PRODUTOS QUE POSSUEM A FLAG DE EDIÇÃO
+  // PRODUTOS COM FLAG DE EDIÇÃO
   const edicoesEncrenca = d.edicoes?.filter(e => e.is_edicao || !e.proprietario_id) || []
   const edicoesSomenteComFlag = d.edicoes?.filter(e => e.is_edicao) || []
   const produtosOutrasPessoas = d.edicoes?.filter(e => !!e.proprietario_id && !e.is_edicao) || []
@@ -330,7 +314,6 @@ export default function App() {
 
   const pendenteClientes = d.vendas?.reduce((acc, v) => acc + Math.max(0, (v.valor_total_centavos || 0) - (v.valor_pago_centavos || 0)), 0) || 0
 
-  // Cálculo de Valores Devidos a Pessoas
   const valoresDevidosPorPessoa: Record<string, number> = {}
   d.vendasItens?.forEach(iv => {
     const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
@@ -352,7 +335,7 @@ export default function App() {
 
   const totalValoresDevidosColetivo = Object.values(valoresDevidosPorPessoa).reduce((acc, curr) => acc + Math.max(0, curr), 0)
 
-  // FILTRAGEM DE ESTOQUE (INCLUINDO FILTRO DE DATA)
+  // FILTRAGEM DE ESTOQUE
   const edicoesFiltradasEstoque = d.edicoes?.filter(e => {
     let passaDono = true
     if (filtroEstoqueDono === 'coletivo') passaDono = !e.proprietario_id
@@ -373,7 +356,7 @@ export default function App() {
     return passaDono && passaLocal && passaData
   }) || []
 
-  // FILTRAGEM DE VENDAS (DATA E EVENTO)
+  // FILTRAGEM DE VENDAS
   const vendasFiltradas = d.vendas?.filter(v => {
     let passaData = true
     if (v.created_at) {
@@ -496,24 +479,16 @@ export default function App() {
           cursor: pointer;
           box-shadow: 2px 2px 0px #000;
         }
-
-        .link-filtro {
-          background: none;
-          border: none;
-          color: #000;
-          font-weight: bold;
-          text-decoration: underline;
-          cursor: pointer;
-          font-size: 13px;
-        }
       `}</style>
 
-      {/* Topo Roxo */}
+      {/* Header Roxo com Logo */}
       <header className="header-top">
-        <div style={{ width: '42px', height: '42px', border: '2px dashed #C5FF27', borderRadius: '6px', background: '#8A41F6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '38px', height: '38px', background: '#C5FF27', border: '2px solid #000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '20px' }}>
+            ⚡
+          </div>
+          <div style={{ color: '#C5FF27', fontSize: '24px', fontWeight: '900', letterSpacing: '2px' }}>DESENCRENCA</div>
         </div>
-        <div style={{ color: '#C5FF27', fontSize: '24px', fontWeight: '900', letterSpacing: '2px' }}>DESENCRENCA</div>
         <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
       </header>
 
@@ -528,7 +503,7 @@ export default function App() {
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros Gerais</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL EM CARDS CLICÁVEIS */}
+        {/* VISÃO GERAL / PAINEL */}
         {aba === 'visao_geral' && (
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Painel</h2>
@@ -612,7 +587,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ABA: VENDAS REGISTRADAS COM FILTROS DE DATA E EVENTO */}
+        {/* ABA: VENDAS REGISTRADAS */}
         {aba === 'vendas_lista' && (
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Histórico de Vendas Registradas</h2>
@@ -729,12 +704,12 @@ export default function App() {
           </div>
         )}
 
-        {/* ABA DE ESTOQUE E PRODUTOS (COM EXPANSÃO E FILTRO DE DATA) */}
+        {/* ABA DE ESTOQUE E PRODUTOS */}
         {aba === 'estoque' && (
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Gestão de Estoque e Produtos</h2>
 
-            {/* Cadastro Rápido de Produto com Flag de Edição */}
+            {/* Cadastro de Novo Produto/Edição */}
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxWidth: '850px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>Cadastrar Novo Produto / Edição</h3>
               {estoqueMsg && <div style={{ padding: '8px', background: '#DCFCE7', color: '#166534', borderRadius: '4px', marginBottom: '10px', fontSize: '13px' }}>{estoqueMsg}</div>}
@@ -782,12 +757,12 @@ export default function App() {
               </form>
             </div>
 
-            {/* Transferência de Responsável pelo Produto */}
+            {/* Transferência de Estoque com Quantidade */}
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '20px', maxWidth: '850px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>Transferir Produto/Estoque para Outro Responsável</h3>
               {transfMsg && <div style={{ padding: '8px', background: '#DCFCE7', color: '#166534', borderRadius: '4px', marginBottom: '10px', fontSize: '13px' }}>{transfMsg}</div>}
 
-              <form onSubmit={handleTransferirEstoque} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
+              <form onSubmit={handleTransferirEstoque} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
                   Selecione o Produto
                   <select value={transfEdicaoId} onChange={e => setTransfEdicaoId(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
@@ -809,13 +784,18 @@ export default function App() {
                   </select>
                 </label>
 
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                  Qtd a Transferir
+                  <input type="number" min="1" value={transfQtd} onChange={e => setTransfQtd(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+                </label>
+
                 <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '9px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>
                   Transferir
                 </button>
               </form>
             </div>
 
-            {/* Painel de Filtros do Estoque */}
+            {/* Filtros do Estoque */}
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>Estoque Atual de Produtos</h3>
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '14px', borderRadius: '8px', marginBottom: '20px', maxWidth: '850px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '12px' }}>
@@ -888,7 +868,6 @@ export default function App() {
                           </td>
                         </tr>
 
-                        {/* Visão Expandida com Locais e Ajuste Rápido */}
                         {expandido && (
                           <tr key={`exp-${e.id}`} style={{ background: '#FAF7F0' }}>
                             <td colSpan={6} style={{ padding: '10px 16px' }}>
