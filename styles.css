@@ -21,20 +21,20 @@ body {
 
 /* Header Roxo Superior */
 .top-header {
-  background-color: var(--header-purple) !important;
-  min-height: 60px;
+  background-color: #8A41F6 !important;
+  min-height: 64px;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  border-bottom: 2px solid var(--border-black);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 20px !important;
+  border-bottom: 2px solid #000000 !important;
 }
 
 .top-header .brand-logo-box {
   width: 44px;
   height: 44px;
-  border: 2px dashed var(--lime-green);
+  border: 2px dashed #C5FF27;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,34 +51,28 @@ body {
 }
 
 .top-header .brand-title {
-  color: var(--lime-green);
+  color: #C5FF27 !important;
   font-size: 26px;
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
 
-/* Botão Sair Verde Limão */
-button.btn-sair, .btn-sair {
-  background-color: var(--lime-green) !important;
+/* Botão Sair Verde Limão Estilizado */
+button.btn-sair-verde {
+  background-color: #C5FF27 !important;
   color: #000000 !important;
-  border: 2px solid var(--border-black) !important;
+  border: 2px solid #000000 !important;
   border-radius: 6px !important;
   padding: 6px 16px !important;
   font-weight: 900 !important;
   cursor: pointer !important;
   font-size: 14px !important;
   box-shadow: 2px 2px 0px #000000 !important;
-  transition: transform 0.1s ease-in-out !important;
-  display: inline-block !important;
 }
 
-button.btn-sair:hover, .btn-sair:hover {
-  background-color: #b3f01f !important;
-}
-
-button.btn-sair:active, .btn-sair:active {
-  transform: translate(1px, 1px) !important;
+button.btn-sair-verde:active {
+  transform: translate(1px, 1px);
   box-shadow: 1px 1px 0px #000000 !important;
 }
 
@@ -98,8 +92,8 @@ nav.menu-tabs {
 }
 
 nav.menu-tabs button {
-  background: var(--lime-green);
-  border: 2px solid var(--border-black);
+  background: #C5FF27;
+  border: 2px solid #000;
   border-radius: 8px;
   padding: 8px 16px;
   font-weight: bold;
@@ -113,43 +107,42 @@ nav.menu-tabs button.ativo {
   color: #FFFFFF;
 }
 
-/* Painel e Cards Quadradinhos Lado a Lado (Identico à Imagem) */
 .panel-title {
   font-size: 20px;
   font-weight: 800;
   margin-bottom: 12px;
 }
 
-.cards-row {
+/* Layout dos Cards Lado a Lado */
+.grid-cards-container {
   display: flex !important;
+  flex-direction: row !important;
   flex-wrap: wrap !important;
   gap: 12px !important;
   margin-bottom: 16px !important;
 }
 
-.metric-card {
-  background: var(--card-bg) !important;
-  border: 2px solid var(--border-black) !important;
+.card-quadrado {
+  background: #FFFFFF !important;
+  border: 2px solid #000000 !important;
   border-radius: 8px !important;
-  padding: 12px 14px !important;
-  box-shadow: 2px 2px 0px #000 !important;
+  padding: 12px !important;
+  box-shadow: 2px 2px 0px #000000 !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
-  width: 200px !important;
-  min-width: 180px !important;
-  max-width: 220px !important;
-  min-height: 95px !important;
-  flex-grow: 0 !important;
+  width: 185px !important;
+  min-height: 90px !important;
+  box-sizing: border-box !important;
 }
 
-.metric-card .label {
+.card-quadrado .label {
   font-size: 11px;
   color: #4A5568;
   line-height: 1.2;
 }
 
-.metric-card .value {
+.card-quadrado .value {
   font-size: 20px;
   font-weight: 900;
 }
@@ -163,8 +156,8 @@ nav.menu-tabs button.ativo {
 
 /* Botões Neobrutalistas e Links */
 .btn-action {
-  background: var(--lime-green);
-  border: 2px solid var(--border-black);
+  background: #C5FF27;
+  border: 2px solid #000000;
   border-radius: 6px;
   padding: 6px 14px;
   font-weight: bold;
@@ -195,7 +188,7 @@ nav.menu-tabs button.ativo {
   max-width: 650px;
   margin-bottom: 20px;
   background: #FFF;
-  border: 2px solid var(--border-black);
+  border: 2px solid #000000;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -235,14 +228,14 @@ label {
 
 input, select {
   padding: 8px 10px;
-  border: 2px solid var(--border-black);
+  border: 2px solid #000000;
   border-radius: 6px;
   font-size: 14px;
 }
 
 button[type="submit"] {
-  background: var(--lime-green);
-  border: 2px solid var(--border-black);
+  background: #C5FF27;
+  border: 2px solid #000000;
   border-radius: 6px;
   padding: 10px;
   font-weight: bold;
@@ -250,43 +243,8 @@ button[type="submit"] {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Responsividade Mobile */
 @media (max-width: 768px) {
-  .top-header {
-    padding: 0 12px;
-  }
-  
-  .top-header .brand-title {
-    font-size: 18px;
-  }
-
-  .main-wrapper {
-    padding: 12px;
-  }
-
-  nav.menu-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-
-  nav.menu-tabs button {
-    width: 100%;
-    text-align: center;
-  }
-
-  .cards-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
-  .metric-card {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .table-container {
-    max-width: 100%;
-    overflow-x: auto;
+  .card-quadrado {
+    width: calc(50% - 6px) !important;
   }
 }
