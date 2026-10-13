@@ -1,16 +1,250 @@
-:root{--roxo:#7B2CF4;--lima:#C3E52B;--rosa:#D985DA;--tinta:#292329;--fundo:#FAF7F0}
-*{box-sizing:border-box}body{margin:0;font:16px system-ui,sans-serif;background:var(--fundo);color:var(--tinta)}
-header{background:var(--roxo);color:var(--lima);padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:3px solid var(--tinta)}
-header h1{margin:0;font:900 1.6rem Impact,'Arial Black',sans-serif;letter-spacing:.5px}
-.logo{width:48px;height:48px;border:2px dashed var(--lima);display:grid;place-items:center;font-size:.6rem}
-nav{display:flex;gap:8px;padding:12px;flex-wrap:wrap}main{padding:0 12px 32px;max-width:900px;margin:auto}
-button,select,input{font:inherit;padding:10px;border:2px solid var(--tinta);border-radius:8px;background:#fff;min-height:44px}
-button{background:var(--lima);font-weight:700;cursor:pointer;box-shadow:2px 2px 0 var(--tinta)}button[aria-current=true]{background:var(--rosa)}
-:focus-visible{outline:3px solid var(--roxo);outline-offset:2px}
-form{display:grid;gap:10px}label{display:grid;gap:4px;font-weight:600}
-table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid var(--tinta);padding:8px;text-align:left}
-.erro{background:#ffd6d6;border:2px solid var(--tinta);padding:10px}.ok{background:var(--lima);border:2px solid var(--tinta);padding:10px}
-.nota{font-size:.85rem}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}.card{background:#fff;border:2px solid var(--tinta);border-radius:8px;padding:10px;box-shadow:3px 3px 0 var(--rosa)}
-.card small{display:block}.card strong{font-size:1.2rem}.cards .nota{grid-column:1/-1}fieldset{border:2px solid var(--tinta);display:grid;gap:8px}.filtros{display:grid;gap:8px}
-td{word-break:break-word}table{display:block;overflow-x:auto}
+:root {
+  --bg-app: #FAF7F0;
+  --header-purple: #7C3AED;
+  --lime-green: #C5FF27;
+  --border-black: #000000;
+  --card-bg: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: #000000;
+  min-height: 100vh;
+}
+
+/* Faixa Roxa Superior de ponta a ponta */
+.top-header {
+  background-color: var(--header-purple);
+  height: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 2px solid var(--border-black);
+}
+
+.top-header .brand-logo-box {
+  width: 36px;
+  height: 36px;
+  border: 2px dashed var(--lime-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.top-header .brand-logo-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.top-header .brand-title {
+  color: var(--lime-green);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.btn-sair {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 2px 2px 0px #000;
+}
+
+/* Área de Conteúdo Principal */
+.main-wrapper {
+  padding: 20px;
+  width: 100%;
+}
+
+/* Menu de Abas Superior */
+nav.menu-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+nav.menu-tabs button {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px #000;
+}
+
+nav.menu-tabs button.ativo {
+  background: #A855F7;
+  color: #FFFFFF;
+}
+
+/* Painel e Cards de Métricas */
+.panel-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.metric-card {
+  background: var(--card-bg);
+  border: 2px solid var(--border-black);
+  border-radius: 8px;
+  padding: 10px 14px;
+  width: 190px;
+  min-height: 80px;
+  box-shadow: 2px 2px 0px #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metric-card .label {
+  font-size: 11px;
+  color: #4A5568;
+  line-height: 1.2;
+}
+
+.metric-card .value {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.disclaimer {
+  font-size: 11px;
+  color: #666;
+  margin-top: 6px;
+  margin-bottom: 28px;
+}
+
+/* Botão Exportar CSV */
+.btn-export {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: bold;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  box-shadow: 2px 2px 0px #000;
+  display: inline-block;
+}
+
+/* Tabelas e Caixas */
+.table-container {
+  width: 100%;
+  max-width: 520px;
+  margin-bottom: 24px;
+  background: #FFF;
+  border: 2px solid var(--border-black);
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table.data-table th, table.data-table td {
+  border: 1px solid #000000;
+  padding: 8px 12px;
+  font-size: 13px;
+  text-align: left;
+}
+
+table.data-table th {
+  background: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Formulários */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 600px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+input, select {
+  padding: 8px 10px;
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+button[type="submit"] {
+  background: var(--lime-green);
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  padding: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px #000;
+}
+
+/* Adaptabilidade no Celular */
+@media (max-width: 768px) {
+  .top-header {
+    padding: 0 12px;
+  }
+  
+  .top-header .brand-title {
+    font-size: 20px;
+  }
+
+  .main-wrapper {
+    padding: 12px;
+  }
+
+  nav.menu-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  nav.menu-tabs button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .metric-card {
+    width: calc(50% - 6px);
+  }
+
+  .table-container {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
