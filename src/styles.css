@@ -1,6 +1,6 @@
 :root {
   --bg-app: #FAF7F0;
-  --header-bg: #8A41F6;
+  --header-purple: #8A41F6;
   --lime-green: #C5FF27;
   --border-black: #000000;
   --card-bg: #FFFFFF;
@@ -16,53 +16,56 @@
 body {
   background-color: var(--bg-app);
   color: #000000;
+  min-height: 100vh;
 }
 
-/* Cabeçalho Roxo */
-.top-header {
-  background-color: var(--header-bg);
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  border-bottom: 2px solid var(--border-black);
+/* Header Roxo Superior */
+.header-top {
+  background-color: var(--header-purple) !important;
+  min-height: 60px;
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 20px !important;
+  border-bottom: 2px solid var(--border-black) !important;
 }
 
-.top-header .brand-title {
-  color: var(--lime-green);
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 1px;
+/* Botão Sair Verde Limão */
+button.btn-sair-verde, .btn-sair-verde {
+  background-color: var(--lime-green) !important;
+  color: #000000 !important;
+  border: 2px solid var(--border-black) !important;
+  border-radius: 6px !important;
+  padding: 6px 16px !important;
+  font-weight: 900 !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  display: inline-block !important;
 }
 
-.btn-sair {
-  background: var(--card-bg);
-  border: 2px solid var(--border-black);
-  border-radius: 6px;
-  padding: 4px 14px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 14px;
-  box-shadow: 2px 2px 0px #000;
+button.btn-sair-verde:active {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0px #000000 !important;
 }
 
-/* Conteúdo Principal */
+/* Área Principal */
 .main-wrapper {
   padding: 20px 24px;
-  max-width: 1400px;
+  max-width: 1350px;
   margin: 0 auto;
 }
 
-/* Menu de Abas Verdes */
-nav.menu-tabs {
+/* Menu de Abas Superior */
+nav.menu-tabs, .menu-tabs {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
 
-nav.menu-tabs button {
+nav.menu-tabs button, .menu-tabs button {
   background: var(--lime-green);
   border: 2px solid var(--border-black);
   border-radius: 8px;
@@ -73,56 +76,63 @@ nav.menu-tabs button {
   box-shadow: 2px 2px 0px #000;
 }
 
-nav.menu-tabs button.ativo {
-  background: #A3E635;
-  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.3);
+nav.menu-tabs button.ativo, .menu-tabs button.ativo {
+  background: #A855F7;
+  color: #FFFFFF;
 }
 
-/* Título e Cards do Painel */
+/* Painel e Cards Quadradinhos Lado a Lado */
 .panel-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   margin-bottom: 12px;
 }
 
-.cards-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
+.cards-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  margin-bottom: 16px !important;
 }
 
-.metric-card {
-  background: var(--card-bg);
-  border: 2px solid var(--border-black);
-  border-radius: 8px;
-  padding: 10px 14px;
-  min-width: 160px;
-  flex: 1;
-  box-shadow: 2px 2px 0px #000;
+.card-quadrado {
+  background: var(--card-bg) !important;
+  border: 2px solid var(--border-black) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  box-shadow: 2px 2px 0px #000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  width: 185px !important;
+  min-width: 160px !important;
+  max-width: 200px !important;
+  min-height: 90px !important;
+  flex-grow: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.metric-card .label {
-  font-size: 12px;
+.card-quadrado .label {
+  font-size: 11px;
   color: #4A5568;
-  margin-bottom: 6px;
   line-height: 1.2;
 }
 
-.metric-card .value {
+.card-quadrado .value {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .disclaimer {
   font-size: 11px;
-  color: #718096;
-  margin-top: 6px;
+  color: #666;
+  margin-top: 4px;
   margin-bottom: 24px;
 }
 
-/* Botão Exportar CSV */
-.btn-export {
+/* Botões Neobrutalistas e Links */
+.btn-action {
   background: var(--lime-green);
   border: 2px solid var(--border-black);
   border-radius: 6px;
@@ -130,22 +140,39 @@ nav.menu-tabs button.ativo {
   font-weight: bold;
   font-size: 13px;
   cursor: pointer;
-  margin-bottom: 12px;
   box-shadow: 2px 2px 0px #000;
   display: inline-block;
 }
 
-/* Tabelas com Borda Preta */
+.link-filtro {
+  background: none;
+  border: none;
+  color: #000;
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+
+.link-filtro:hover {
+  color: #7C3AED;
+}
+
+/* Tabelas e Caixas */
 .table-container {
-  max-width: 600px;
-  margin-bottom: 24px;
+  width: 100%;
+  max-width: 650px;
+  margin-bottom: 20px;
+  background: #FFF;
+  border: 2px solid var(--border-black);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 table.data-table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--card-bg);
-  border: 2px solid var(--border-black);
 }
 
 table.data-table th, table.data-table td {
@@ -156,7 +183,7 @@ table.data-table th, table.data-table td {
 }
 
 table.data-table th {
-  background: #EDF2F7;
+  background: #FFFFFF;
   font-weight: bold;
 }
 
@@ -193,30 +220,10 @@ button[type="submit"] {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Ajuste Responsivo Celular */
+/* Responsivo para celular */
 @media (max-width: 768px) {
-  .main-wrapper {
-    padding: 12px;
-  }
-
-  nav.menu-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-
-  nav.menu-tabs button {
-    width: 100%;
-    text-align: center;
-  }
-
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .table-container {
-    max-width: 100%;
-    overflow-x: auto;
+  .card-quadrado {
+    width: calc(50% - 6px) !important;
+    max-width: 100% !important;
   }
 }
