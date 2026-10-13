@@ -270,14 +270,12 @@ export default function App() {
 
   const totalValoresDevidosColetivo = Object.values(valoresDevidosPorPessoa).reduce((acc, curr) => acc + Math.max(0, curr), 0)
 
-  // Filtro Duplo da Aba de Estoque (por Responsável e por Local)
+  // Filtro Duplo da Aba de Estoque
   const edicoesFiltradasEstoque = d.edicoes?.filter(e => {
-    // Filtro 1: Responsável / Proprietário
     let passaDono = true
     if (filtroEstoqueDono === 'coletivo') passaDono = !e.proprietario_id
     else if (filtroEstoqueDono !== 'todos') passaDono = String(e.proprietario_id) === String(filtroEstoqueDono)
 
-    // Filtro 2: Local do Estoque
     let passaLocal = true
     if (filtroEstoqueLocal !== 'todos') {
       const temSaldoNoLocal = d.saldos?.some(s => String(s.edicao_id) === String(e.id) && String(s.local_id) === String(filtroEstoqueLocal) && (s.qtd || 0) > 0)
@@ -289,7 +287,7 @@ export default function App() {
 
   return (
     <div>
-      {/* Topo Roxo */}
+      {/* Topo Roxo com Logo e Botão Verde Limão em Estilo Inline Garantido */}
       <header className="top-header">
         <div className="brand-logo-box">
           <img 
@@ -305,7 +303,7 @@ export default function App() {
           />
         </div>
         <div className="brand-title">DESENCRENCA</div>
-        <button onClick={handleLogout} className="btn-sair">Sair</button>
+        <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
       </header>
 
       <div className="main-wrapper">
@@ -323,9 +321,9 @@ export default function App() {
           <div>
             <h2 className="panel-title">Painel</h2>
 
-            {/* Linha 1 de Cards em Quadradinhos Lado a Lado */}
-            <div className="cards-row">
-              <div className="metric-card">
+            {/* Linha 1 de Cards em Grade Horizontal Flex */}
+            <div className="grid-cards-container">
+              <div className="card-quadrado">
                 <div className="label">Exemplares Encrenca<br/>Vendidos (Total)</div>
                 <div className="value">{exemplaresEncrencaVendidos} un</div>
               </div>
@@ -333,7 +331,7 @@ export default function App() {
               {edicoesEncrenca.slice(0, mostrarMaisEdicoes ? edicoesEncrenca.length : 3).map(e => {
                 const qtd = d.vendasItens?.filter(iv => String(iv.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 1), 0) || 0
                 return (
-                  <div key={e.id} className="metric-card">
+                  <div key={e.id} className="card-quadrado">
                     <div className="label">Vendidos:<br/>{e.titulo}</div>
                     <div className="value">{qtd} un</div>
                   </div>
@@ -351,25 +349,25 @@ export default function App() {
               )}
             </div>
 
-            {/* Linha 2 de Cards do Coletivo e Produtos */}
-            <div className="cards-row">
-              <div className="metric-card">
+            {/* Linha 2 de Cards em Grade Horizontal Flex */}
+            <div className="grid-cards-container">
+              <div className="card-quadrado">
                 <div className="label">Total Recebido pelo<br/>Coletivo</div>
                 <div className="value">{fmtMoney(totalRecebidoColetivo)}</div>
               </div>
-              <div className="metric-card">
+              <div className="card-quadrado">
                 <div className="label">Pendente de Clientes<br/>(A Receber)</div>
                 <div className="value">{fmtMoney(pendenteClientes)}</div>
               </div>
-              <div className="metric-card" style={{ border: '2px solid #E53E3E' }}>
+              <div className="card-quadrado" style={{ borderColor: '#E53E3E' }}>
                 <div className="label">Valores Devidos a<br/>Pessoas</div>
                 <div className="value" style={{ color: '#E53E3E' }}>{fmtMoney(totalValoresDevidosColetivo)}</div>
               </div>
-              <div className="metric-card">
+              <div className="card-quadrado">
                 <div className="label">Produtos do Coletivo<br/>Cadastrados</div>
                 <div className="value">{edicoesEncrenca.length}</div>
               </div>
-              <div className="metric-card">
+              <div className="card-quadrado">
                 <div className="label">Produtos de Pessoas<br/>Cadastrados</div>
                 <div className="value">{edicoesPessoas.length}</div>
               </div>
