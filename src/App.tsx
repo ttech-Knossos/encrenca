@@ -11,9 +11,6 @@ const fmtMoney = (c: number | undefined | null) => {
   return `R$ ${(c / 100).toFixed(2).replace('.', ',')}`
 }
 
-// Logo Oficial enviada pelo usuário (Ilustração "E" em Amarelo/Rosa sobre Fundo Roxo)
-const LOGO_OFICIAL_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAl86o9580AQQEJK8QeomA4AQUBQQFA0AAR4FAAB0RRYAOCJiBCCEjiCoRHQggKD0AAA4uAAMG3aX54B4H32c4Sbf54B/22ffR/73S7d894S0sLAAAAASUVORK5CYII="
-
 export default function App() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
@@ -35,7 +32,7 @@ export default function App() {
   const [filtroEstoqueDono, setFiltroEstoqueDono] = useState<string>('todos')
   const [filtroEstoqueLocal, setFiltroEstoqueLocal] = useState<string>('todos')
 
-  // Formulário de Repasse (Coletivo -> Pessoa ou Pessoa -> Coletivo)
+  // Formulário de Repasse (Coletivo Encrenca -> Pessoa ou Pessoa -> Coletivo Encrenca)
   const [origemRepasse, setOrigemRepasse] = useState<'coletivo_para_pessoa' | 'pessoa_para_coletivo'>('coletivo_para_pessoa')
   const [repassePessoaId, setRepassePessoaId] = useState('')
   const [repasseValor, setRepasseValor] = useState('')
@@ -213,7 +210,7 @@ export default function App() {
       <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', background: '#FAF7F0', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => { e.currentTarget.src = LOGO_OFICIAL_BASE64 }} />
+            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
             <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
           </div>
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
@@ -399,14 +396,14 @@ export default function App() {
         }
       `}</style>
 
-      {/* Topo Roxo com Logo Oficial */}
+      {/* Topo Roxo com Logo */}
       <header className="header-top">
         <div style={{ width: '42px', height: '42px', border: '2px dashed #C5FF27', borderRadius: '6px', background: '#8A41F6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <img 
             src="/logo.png" 
             alt="Logo" 
             style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-            onError={(e) => { e.currentTarget.src = LOGO_OFICIAL_BASE64 }} 
+            onError={(e) => { e.currentTarget.style.display = 'none' }} 
           />
         </div>
         <div style={{ color: '#C5FF27', fontSize: '24px', fontWeight: '900', letterSpacing: '2px' }}>DESENCRENCA</div>
@@ -676,4 +673,126 @@ export default function App() {
               <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
                 Filtrar por Local de Estoque:
                 <select value={filtroEstoqueLocal} onChange={e => setFiltroEstoqueLocal(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
-                  <option value="todos">
+                  <option value="todos">Todos os Locais</option>
+                  {d.locais?.map(l => (
+                    <option key={l.id} value={l.id}>{l.nome}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="table-container" style={{ maxWidth: '800px' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Produto / Edição</th>
+                    <th>Responsável</th>
+                    <th>Local</th>
+                    <th>Saldo</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Ajuste Rápido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {edicoesFiltradasEstoque.map(e => {
+                    const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
+                    const localPadrao = d.locais?.[0]
+                    const saldo = d.saldos?.find(s => String(s.edicao_id) === String(e.id) && (filtroEstoqueLocal === 'todos' || String(s.local_id) === String(filtroEstoqueLocal)))
+                    const qtdAtual = saldo?.qtd || 0
+                    const localNome = d.locais?.find(l => String(l.id) === String(saldo?.local_id))?.nome || localPadrao?.nome || 'Estoque Geral'
+
+                    return (
+                      <tr key={e.id}>
+                        <td><strong>{e.titulo}</strong></td>
+                        <td>{dono}</td>
+                        <td>{localNome}</td>
+                        <td style={{ fontWeight: 'bold', color: qtdAtual > 0 ? '#2F855A' : '#E53E3E' }}>{qtdAtual} un</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button 
+                              type="button"
+                              onClick={() => handleAjustarEstoque(String(e.id), String(saldo?.local_id || localPadrao?.id), -1)}
+                              style={{ padding: '2px 8px', background: '#FEE2E2', border: '1px solid #000', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                              -1
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => handleAjustarEstoque(String(e.id), String(saldo?.local_id || localPadrao?.id), 1)}
+                              style={{ padding: '2px 8px', background: '#DCFCE7', border: '1px solid #000', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                              +1
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {edicoesFiltradasEstoque.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', color: '#666' }}>Nenhum produto encontrado com os filtros selecionados.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        )}
+
+        {/* ABA REGISTRAR REPASSE */}
+        {aba === 'repasses' && (
+          <div>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Registrar Repasse Financeiro</h2>
+            {repasseMsg && <div style={{ background: '#DCFCE7', color: '#166534', padding: '10px', borderRadius: '6px', marginBottom: '12px', border: '1px solid #86EFAC' }}>{repasseMsg}</div>}
+
+            <form onSubmit={handleSalvarRepasse} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '600px', background: '#FFF', border: '2px solid #000', padding: '18px', borderRadius: '8px', boxShadow: '2px 2px 0 #000' }}>
+              
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Tipo / Fluxo do Repasse:
+                <select value={origemRepasse} onChange={e => setOrigemRepasse(e.target.value as any)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px', background: '#FAF7F0', fontWeight: 'bold' }}>
+                  <option value="coletivo_para_pessoa">Coletivo (Encrenca) ➔ Repassa para uma Pessoa</option>
+                  <option value="pessoa_para_coletivo">Pessoa ➔ Repassa dinheiro ao Coletivo (Encrenca)</option>
+                </select>
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Pessoa Beneficiária / Envolvida
+                <select value={repassePessoaId} onChange={e => setRepassePessoaId(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
+                  <option value="">Selecione a pessoa</option>
+                  {d.pessoas?.filter(p => p.ativa !== false).map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome} (Saldo devido a ela: {fmtMoney(valoresDevidosPorPessoa[String(p.id)] || 0)})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {repassePessoaId && (
+                <div style={{ padding: '10px', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
+                  A ser repassado pelo Coletivo (Encrenca) a esta pessoa: {fmtMoney(valoresDevidosPorPessoa[String(repassePessoaId)] || 0)}
+                </div>
+              )}
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Valor do Repasse (R$)
+                <input inputMode="decimal" placeholder="0,00" value={repasseValor} onChange={e => setRepasseValor(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+              </label>
+
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Observação / Detalhes (opcional)
+                <input placeholder="Ex: Pix relativo às vendas de zines da feira X" value={repasseObs} onChange={e => setRepasseObs(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+              </label>
+
+              <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000', fontSize: '14px' }}>
+                Salvar Repasse
+              </button>
+            </form>
+          </div>
+        )}
+
+        {aba === 'venda' && <VendaForm d={d} onOk={carregar} />}
+        {aba === 'cadastros' && <Cadastros d={d} onOk={carregar} />}
+      </div>
+    </div>
+  )
+}
