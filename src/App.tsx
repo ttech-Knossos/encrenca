@@ -18,7 +18,7 @@ export default function App() {
   const [loginErro, setLoginErro] = useState('')
   const [carregandoLogin, setCarregandoLogin] = useState(false)
 
-  const [aba, setAba] = useState<'visao_geral' | 'venda' | 'repasses' | 'estoque' | 'cadastros'>('visao_geral')
+  const [aba, setAba] = useState<'visao_geral' | 'venda' | 'vendas_lista' | 'repasses' | 'estoque' | 'cadastros'>('visao_geral')
   const [d, setD] = useState<Dados>({})
   const [erro, setErro] = useState('')
 
@@ -28,11 +28,14 @@ export default function App() {
   const [mostrarDinheiroPessoas, setMostrarDinheiroPessoas] = useState(false)
   const [mostrarProdsResponsavel, setMostrarProdsResponsavel] = useState(false)
 
+  // Expansor da Lista de Vendas
+  const [vendasAbertas, setVendasAbertas] = useState<Record<string, boolean>>({})
+
   // Filtros da Tela de Estoque
   const [filtroEstoqueDono, setFiltroEstoqueDono] = useState<string>('todos')
   const [filtroEstoqueLocal, setFiltroEstoqueLocal] = useState<string>('todos')
 
-  // Formulário de Repasse (Coletivo Encrenca -> Pessoa ou Pessoa -> Coletivo Encrenca)
+  // Formulário de Repasse
   const [origemRepasse, setOrigemRepasse] = useState<'coletivo_para_pessoa' | 'pessoa_para_coletivo'>('coletivo_para_pessoa')
   const [repassePessoaId, setRepassePessoaId] = useState('')
   const [repasseValor, setRepasseValor] = useState('')
@@ -101,6 +104,10 @@ export default function App() {
   function irParaEstoqueComFiltro(donoId: string) {
     setFiltroEstoqueDono(donoId)
     setAba('estoque')
+  }
+
+  function toggleVendaExpandida(vendaId: string) {
+    setVendasAbertas(prev => ({ ...prev, [vendaId]: !prev[vendaId] }))
   }
 
   async function handleSalvarRepasse(e: React.FormEvent) {
@@ -237,20 +244,46 @@ export default function App() {
 
   if (erro) return <div style={{ padding: '20px', color: 'red' }}>{erro}</div>
 
-  // 1. Edições Encrenca e de Pessoas
+  // Categorização de Edições/Produtos
   const edicoesEncrenca = d.edicoes?.filter(e => !e.proprietario_id) || []
   const edicoesPessoas = d.edicoes?.filter(e => !!e.proprietario_id) || []
   const idsEncrenca = edicoesEncrenca.map(e => String(e.id))
+  const idsPessoas = edicoesPessoas.map(e => String(e.id))
 
-  // 2. Vendas SÓ ENCRENCA
-  const exemplaresEncrencaVendidos = d.vendasItens?.filter(iv => idsEncrenca.includes(String(iv.edicao_id)))
-    .reduce((acc, curr) => acc + (curr.qtd || 1), 0) || d.vendas?.reduce((acc, v) => acc + (v.qtd_itens || 1), 0) || 0
+  // CÁLCULOS PRECISOS DE VENDAS
+  let exemplaresEncrencaVendidos = 0
+  let exemplaresPessoasVendidos = 0
 
-  // 3. Totais Financeiros do Coletivo
-  const totalRecebidoColetivo = d.vendas?.reduce((acc, v) => acc + (v.valor_pago_centavos || 0), 0) || 0
+  if (d.vendasItens && d.vendasItens.length > 0) {
+    d.vendasItens.forEach(iv => {
+      const eId = String(iv.edicao_id)
+      const qtd = iv.qtd || 1
+      if (idsEncrenca.includes(eId)) {
+        exemplaresEncrencaVendidos += qtd
+      } else if (idsPessoas.includes(eId)) {
+        exemplaresPessoasVendidos += qtd
+      }
+    })
+  } else if (d.vendas) {
+    exemplaresEncrencaVendidos = d.vendas.reduce((acc, v) => acc + (v.qtd_itens || 1), 0)
+  }
+
+  // CÁLCULOS FINANCEIROS
+  let totalRecebidoColetivo = 0
+  let totalRecebidoPessoasDireto = 0
+
+  d.vendas?.forEach(v => {
+    const pago = v.valor_pago_centavos || 0
+    if (v.recebedor_pessoa_id) {
+      totalRecebidoPessoasDireto += pago
+    } else {
+      totalRecebidoColetivo += pago
+    }
+  })
+
   const pendenteClientes = d.vendas?.reduce((acc, v) => acc + Math.max(0, (v.valor_total_centavos || 0) - (v.valor_pago_centavos || 0)), 0) || 0
 
-  // 4. Regra dos Valores Devidos a Pessoas
+  // Cálculo de Valores Devidos por Pessoa (Vendas de produtos de pessoa pagas ao Coletivo)
   const valoresDevidosPorPessoa: Record<string, number> = {}
   d.vendasItens?.forEach(iv => {
     const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
@@ -261,6 +294,7 @@ export default function App() {
     }
   })
 
+  // Abater repasses efetuados
   d.repasses?.forEach(r => {
     const pId = String(r.pessoa_id)
     if (valoresDevidosPorPessoa[pId]) {
@@ -351,10 +385,17 @@ export default function App() {
           padding: 12px !important;
           box-shadow: 2px 2px 0px #000 !important;
           width: 185px !important;
-          min-height: 90px !important;
+          min-height: 95px !important;
           display: flex !important;
           flex-direction: column !important;
           justify-content: space-between !important;
+          cursor: pointer;
+          transition: transform 0.1s ease;
+        }
+
+        .card-quadrado:hover {
+          transform: translateY(-2px);
+          background-color: #FCF9F2 !important;
         }
 
         .card-quadrado .label { font-size: 11px; color: #4A5568; line-height: 1.2; }
@@ -362,7 +403,7 @@ export default function App() {
 
         .table-container {
           width: 100%;
-          max-width: 650px;
+          max-width: 800px;
           margin-bottom: 20px;
           background: #FFF;
           border: 2px solid #000;
@@ -399,12 +440,7 @@ export default function App() {
       {/* Topo Roxo com Logo */}
       <header className="header-top">
         <div style={{ width: '42px', height: '42px', border: '2px dashed #C5FF27', borderRadius: '6px', background: '#8A41F6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-            onError={(e) => { e.currentTarget.style.display = 'none' }} 
-          />
+          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
         </div>
         <div style={{ color: '#C5FF27', fontSize: '24px', fontWeight: '900', letterSpacing: '2px' }}>DESENCRENCA</div>
         <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
@@ -415,33 +451,43 @@ export default function App() {
         <nav className="menu-tabs">
           <button onClick={() => setAba('visao_geral')} className={aba === 'visao_geral' ? 'ativo' : ''}>Visão geral</button>
           <button onClick={() => setAba('venda')} className={aba === 'venda' ? 'ativo' : ''}>Registrar venda</button>
+          <button onClick={() => setAba('vendas_lista')} className={aba === 'vendas_lista' ? 'ativo' : ''}>Vendas registradas</button>
           <button onClick={() => setAba('repasses')} className={aba === 'repasses' ? 'ativo' : ''}>Registrar repasse</button>
           <button onClick={() => setAba('estoque')} className={aba === 'estoque' ? 'ativo' : ''}>Estoque</button>
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL EM CARDS QUADRADINHOS */}
+        {/* VISÃO GERAL / PAINEL EM CARDS CLICÁVEIS */}
         {aba === 'visao_geral' && (
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Painel</h2>
 
+            {/* Linha 1 de Cards em Quadradinhos Lado a Lado */}
             <div className="cards-row">
-              <div className="card-quadrado">
+              <div className="card-quadrado" onClick={() => setAba('vendas_lista')} title="Clique para ver lista de vendas">
                 <div className="label">Exemplares Encrenca<br/>Vendidos (Total)</div>
                 <div className="value">{exemplaresEncrencaVendidos} un</div>
+                <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver Vendas ➔</div>
               </div>
 
-              {edicoesEncrenca.slice(0, mostrarMaisEdicoes ? edicoesEncrenca.length : 3).map(e => {
+              <div className="card-quadrado" onClick={() => setAba('vendas_lista')} title="Clique para ver lista de vendas de outras pessoas" style={{ border: '2px solid #2563EB' }}>
+                <div className="label">Exemplares de Pessoas<br/>Vendidos (Outros)</div>
+                <div className="value" style={{ color: '#2563EB' }}>{exemplaresPessoasVendidos} un</div>
+                <div style={{ fontSize: '10px', color: '#2563EB', textDecoration: 'underline' }}>Ver Detalhes ➔</div>
+              </div>
+
+              {edicoesEncrenca.slice(0, mostrarMaisEdicoes ? edicoesEncrenca.length : 2).map(e => {
                 const qtd = d.vendasItens?.filter(iv => String(iv.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 1), 0) || 0
                 return (
-                  <div key={e.id} className="card-quadrado">
+                  <div key={e.id} className="card-quadrado" onClick={() => irParaEstoqueComFiltro('coletivo')}>
                     <div className="label">Vendidos:<br/>{e.titulo}</div>
                     <div className="value">{qtd} un</div>
+                    <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver no Estoque ➔</div>
                   </div>
                 )
               })}
 
-              {edicoesEncrenca.length > 3 && (
+              {edicoesEncrenca.length > 2 && (
                 <button 
                   onClick={() => setMostrarMaisEdicoes(!mostrarMaisEdicoes)}
                   className="btn-action" 
@@ -452,26 +498,42 @@ export default function App() {
               )}
             </div>
 
+            {/* Linha 2 de Cards em Quadradinhos Lado a Lado */}
             <div className="cards-row">
-              <div className="card-quadrado">
+              <div className="card-quadrado" onClick={() => setAba('vendas_lista')}>
                 <div className="label">Total Recebido pelo<br/>Coletivo</div>
                 <div className="value">{fmtMoney(totalRecebidoColetivo)}</div>
+                <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver Vendas ➔</div>
               </div>
-              <div className="card-quadrado">
+
+              <div className="card-quadrado" onClick={() => setAba('vendas_lista')}>
+                <div className="label">Total Recebido por<br/>Pessoas (Direto)</div>
+                <div className="value">{fmtMoney(totalRecebidoPessoasDireto)}</div>
+                <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver Vendas ➔</div>
+              </div>
+
+              <div className="card-quadrado" onClick={() => setAba('vendas_lista')}>
                 <div className="label">Pendente de Clientes<br/>(A Receber)</div>
                 <div className="value">{fmtMoney(pendenteClientes)}</div>
+                <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver Pendentes ➔</div>
               </div>
-              <div className="card-quadrado" style={{ borderColor: '#E53E3E' }}>
+
+              <div className="card-quadrado" onClick={() => setAba('repasses')} style={{ borderColor: '#E53E3E' }}>
                 <div className="label">Valores Devidos a<br/>Pessoas</div>
                 <div className="value" style={{ color: '#E53E3E' }}>{fmtMoney(totalValoresDevidosColetivo)}</div>
+                <div style={{ fontSize: '10px', color: '#E53E3E', textDecoration: 'underline' }}>Repassar ➔</div>
               </div>
-              <div className="card-quadrado">
+
+              <div className="card-quadrado" onClick={() => irParaEstoqueComFiltro('coletivo')}>
                 <div className="label">Produtos do Coletivo<br/>Cadastrados</div>
                 <div className="value">{edicoesEncrenca.length}</div>
+                <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver no Estoque ➔</div>
               </div>
-              <div className="card-quadrado">
+
+              <div className="card-quadrado" onClick={() => irParaEstoqueComFiltro('todos')}>
                 <div className="label">Produtos de Pessoas<br/>Cadastrados</div>
                 <div className="value">{edicoesPessoas.length}</div>
+                <div style={{ fontSize: '10px', color: '#7C3AED', textDecoration: 'underline' }}>Ver no Estoque ➔</div>
               </div>
             </div>
 
@@ -614,6 +676,87 @@ export default function App() {
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* NOVA ABA: VENDAS REGISTRADAS (RETRÁTIL ITEM A ITEM) */}
+        {aba === 'vendas_lista' && (
+          <div>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Histórico de Vendas Registradas</h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '850px' }}>
+              {d.vendas?.map(v => {
+                const aberta = !!vendasAbertas[String(v.id)]
+                const recebedorNome = v.recebedor_pessoa_id 
+                  ? d.pessoas?.find(p => String(p.id) === String(v.recebedor_pessoa_id))?.nome || 'Pessoa'
+                  : 'Coletivo (Encrenca)'
+
+                const itensVenda = d.vendasItens?.filter(iv => String(iv.venda_id) === String(v.id)) || []
+
+                return (
+                  <div key={v.id} style={{ background: '#FFF', border: '2px solid #000', borderRadius: '8px', overflow: 'hidden', boxShadow: '2px 2px 0 #000' }}>
+                    <div 
+                      onClick={() => toggleVendaExpandida(String(v.id))}
+                      style={{ padding: '12px 16px', background: '#FFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      <div>
+                        <strong>Venda #{String(v.id).slice(0, 8)}</strong> - {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : 'Data recente'}
+                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                          Recebedor: <strong>{recebedorNome}</strong> | Forma de Pagamento: {v.meio_pagamento || 'Pix/Dinheiro'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '15px', fontWeight: '900', color: '#2F855A' }}>{fmtMoney(v.valor_pago_centavos || v.valor_total_centavos)}</div>
+                        <button className="btn-action" style={{ padding: '2px 8px', fontSize: '11px', marginTop: '4px' }}>
+                          {aberta ? '- Ocultar Itens' : '+ Ver Itens'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {aberta && (
+                      <div style={{ borderTop: '1px solid #000', padding: '12px 16px', background: '#FAF7F0' }}>
+                        <h4 style={{ fontSize: '13px', marginBottom: '8px' }}>Itens Desta Venda:</h4>
+                        {itensVenda.length > 0 ? (
+                          <table className="data-table" style={{ background: '#FFF' }}>
+                            <thead>
+                              <tr>
+                                <th>Produto</th>
+                                <th>Proprietário / Responsável</th>
+                                <th>Qtd</th>
+                                <th>Valor Unitário</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {itensVenda.map((iv, idx) => {
+                                const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
+                                const dono = prod?.proprietario_id 
+                                  ? d.pessoas?.find(p => String(p.id) === String(prod.proprietario_id))?.nome || 'Pessoa'
+                                  : 'Coletivo (Encrenca)'
+
+                                return (
+                                  <tr key={idx}>
+                                    <td><strong>{prod?.titulo || 'Produto'}</strong></td>
+                                    <td>{dono}</td>
+                                    <td>{iv.qtd || 1} un</td>
+                                    <td>{fmtMoney(iv.preco_centavos || prod?.preco_sugerido_centavos || 0)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div style={{ fontSize: '12px', color: '#666' }}>Resumo: Venda total de {fmtMoney(v.valor_pago_centavos)} registrada diretamente.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {(!d.vendas || d.vendas.length === 0) && (
+                <div style={{ padding: '20px', background: '#FFF', border: '2px solid #000', borderRadius: '8px' }}>Nenhuma venda registrada até o momento.</div>
+              )}
+            </div>
           </div>
         )}
 
