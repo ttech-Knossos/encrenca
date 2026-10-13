@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import './styles.css'
 import { VendaForm } from './VendaForm'
 import { Cadastros } from './Extras'
 
@@ -203,31 +202,28 @@ export default function App() {
 
   if (!session) {
     return (
-      <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', background: '#FAF7F0', minHeight: '100vh' }}>
         <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
-            <img 
-              src="/logo.png" 
-              alt="Logo" 
-              style={{ height: '36px', objectFit: 'contain' }} 
-              onError={(e) => {
-                if (e.currentTarget.src.includes('/logo.png')) {
-                  e.currentTarget.src = 'logo.png'
-                } else {
-                  e.currentTarget.style.display = 'none'
-                }
-              }} 
-            />
+            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
             <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
           </div>
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
           
           {loginErro && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px', borderRadius: '6px', fontSize: '13px', marginBottom: '12px' }}>{loginErro}</div>}
 
-          <form onSubmit={handleLogin}>
-            <label>E-mail<input type="email" value={email} onChange={e => setEmail(e.target.value)} required /></label>
-            <label>Senha<input type="password" value={password} onChange={e => setPassword(e.target.value)} required /></label>
-            <button type="submit" disabled={carregandoLogin}>{carregandoLogin ? 'Entrando…' : 'Entrar'}</button>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+              E-mail
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+              Senha
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+            </label>
+            <button type="submit" disabled={carregandoLogin} style={{ background: '#C5FF27', border: '2px solid #000', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>
+              {carregandoLogin ? 'Entrando…' : 'Entrar'}
+            </button>
           </form>
         </div>
       </div>
@@ -260,7 +256,6 @@ export default function App() {
     }
   })
 
-  // Subtrai repasses efetuados
   d.repasses?.forEach(r => {
     const pId = String(r.pessoa_id)
     if (valoresDevidosPorPessoa[pId]) {
@@ -286,27 +281,127 @@ export default function App() {
   }) || []
 
   return (
-    <div>
-      {/* Topo Roxo com Logo e Botão Verde Limão em Estilo Inline Garantido */}
-      <header className="top-header">
-        <div className="brand-logo-box">
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            onError={(e) => { 
-              if (e.currentTarget.src.includes('/logo.png')) {
-                e.currentTarget.src = 'logo.png'
-              } else {
-                e.currentTarget.style.display = 'none' 
-              }
-            }} 
-          />
+    <div style={{ background: '#FAF7F0', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+      {/* Injeção de CSS direto no componente para garantir aplicação */}
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: #FAF7F0; font-family: sans-serif; }
+        
+        .header-top {
+          background-color: #8A41F6;
+          min-height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 20px;
+          border-bottom: 2px solid #000;
+        }
+
+        .btn-sair-verde {
+          background-color: #C5FF27 !important;
+          color: #000 !important;
+          border: 2px solid #000 !important;
+          border-radius: 6px !important;
+          padding: 6px 16px !important;
+          font-weight: 900 !important;
+          cursor: pointer !important;
+          font-size: 14px !important;
+          box-shadow: 2px 2px 0px #000 !important;
+        }
+
+        .menu-tabs {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 24px;
+        }
+
+        .menu-tabs button {
+          background: #C5FF27;
+          border: 2px solid #000;
+          border-radius: 8px;
+          padding: 8px 16px;
+          font-weight: bold;
+          font-size: 14px;
+          cursor: pointer;
+          box-shadow: 2px 2px 0px #000;
+        }
+
+        .menu-tabs button.ativo {
+          background: #A855F7;
+          color: #FFF;
+        }
+
+        .cards-row {
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: wrap !important;
+          gap: 12px !important;
+          margin-bottom: 16px !important;
+        }
+
+        .card-quadrado {
+          background: #FFF !important;
+          border: 2px solid #000 !important;
+          border-radius: 8px !important;
+          padding: 12px !important;
+          box-shadow: 2px 2px 0px #000 !important;
+          width: 185px !important;
+          min-height: 90px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-between !important;
+        }
+
+        .card-quadrado .label { font-size: 11px; color: #4A5568; line-height: 1.2; }
+        .card-quadrado .value { font-size: 20px; font-weight: 900; }
+
+        .table-container {
+          width: 100%;
+          max-width: 650px;
+          margin-bottom: 20px;
+          background: #FFF;
+          border: 2px solid #000;
+          border-radius: 6px;
+          overflow: hidden;
+        }
+
+        table.data-table { width: 100%; border-collapse: collapse; }
+        table.data-table th, table.data-table td { border: 1px solid #000; padding: 8px 12px; font-size: 13px; text-align: left; }
+        table.data-table th { background: #FFF; font-weight: bold; }
+
+        .btn-action {
+          background: #C5FF27;
+          border: 2px solid #000;
+          border-radius: 6px;
+          padding: 6px 14px;
+          font-weight: bold;
+          font-size: 13px;
+          cursor: pointer;
+          box-shadow: 2px 2px 0px #000;
+        }
+
+        .link-filtro {
+          background: none;
+          border: none;
+          color: #000;
+          font-weight: bold;
+          text-decoration: underline;
+          cursor: pointer;
+          font-size: 13px;
+        }
+      `}</style>
+
+      {/* Topo Roxo */}
+      <header className="header-top">
+        <div style={{ width: '40px', height: '40px', border: '2px dashed #C5FF27', borderRadius: '6px', background: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
         </div>
-        <div className="brand-title">DESENCRENCA</div>
+        <div style={{ color: '#C5FF27', fontSize: '24px', fontWeight: '900', letterSpacing: '2px' }}>DESENCRENCA</div>
         <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
       </header>
 
-      <div className="main-wrapper">
+      <div style={{ padding: '20px 24px', maxWidth: '1350px', margin: '0 auto' }}>
         {/* Menu Principal */}
         <nav className="menu-tabs">
           <button onClick={() => setAba('visao_geral')} className={aba === 'visao_geral' ? 'ativo' : ''}>Visão geral</button>
@@ -319,10 +414,10 @@ export default function App() {
         {/* VISÃO GERAL / PAINEL EM CARDS QUADRADINHOS */}
         {aba === 'visao_geral' && (
           <div>
-            <h2 className="panel-title">Painel</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Painel</h2>
 
-            {/* Linha 1 de Cards em Grade Horizontal Flex */}
-            <div className="grid-cards-container">
+            {/* Linha 1 de Cards em Quadradinhos Lado a Lado */}
+            <div className="cards-row">
               <div className="card-quadrado">
                 <div className="label">Exemplares Encrenca<br/>Vendidos (Total)</div>
                 <div className="value">{exemplaresEncrencaVendidos} un</div>
@@ -349,8 +444,8 @@ export default function App() {
               )}
             </div>
 
-            {/* Linha 2 de Cards em Grade Horizontal Flex */}
-            <div className="grid-cards-container">
+            {/* Linha 2 de Cards em Quadradinhos Lado a Lado */}
+            <div className="cards-row">
               <div className="card-quadrado">
                 <div className="label">Total Recebido pelo<br/>Coletivo</div>
                 <div className="value">{fmtMoney(totalRecebidoColetivo)}</div>
@@ -373,14 +468,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="disclaimer">
+            <p style={{ fontSize: '11px', color: '#666', marginTop: '4px', marginBottom: '24px' }}>
               Totais acumulados desde o início do uso do app. Não são lucro nem saldo em caixa.
-            </div>
+            </p>
 
             {/* SEÇÃO EXPANSÍVEL: ESTOQUE POR PRODUTO */}
             <div style={{ marginTop: '24px', borderTop: '2px solid #000', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 className="panel-title" style={{ margin: 0 }}>Estoque por produto (posição agora)</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>Estoque por produto (posição agora)</h3>
                 <button onClick={() => setMostrarEstoqueProduto(!mostrarEstoqueProduto)} className="btn-action" style={{ margin: 0 }}>
                   {mostrarEstoqueProduto ? '- Ocultar Estoque por Produto' : '+ Ver Estoque por Produto'}
                 </button>
@@ -423,7 +518,7 @@ export default function App() {
             {/* SEÇÃO EXPANSÍVEL: DINHEIRO SOB RESPONSABILIDADE DAS PESSOAS */}
             <div style={{ marginTop: '20px', borderTop: '2px solid #000', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 className="panel-title" style={{ margin: 0 }}>Dinheiro sob responsabilidade das pessoas (posição agora)</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>Dinheiro sob responsabilidade das pessoas (posição agora)</h3>
                 <button onClick={() => setMostrarDinheiroPessoas(!mostrarDinheiroPessoas)} className="btn-action" style={{ margin: 0 }}>
                   {mostrarDinheiroPessoas ? '- Ocultar Dinheiro sob Responsabilidade' : '+ Ver Dinheiro sob Responsabilidade'}
                 </button>
@@ -462,7 +557,6 @@ export default function App() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="disclaimer">Valores recebidos não são lucro nem saldo em caixa.</div>
                 </div>
               )}
             </div>
@@ -470,7 +564,7 @@ export default function App() {
             {/* SEÇÃO EXPANSÍVEL: PRODUTOS CADASTRADOS POR RESPONSÁVEL */}
             <div style={{ marginTop: '20px', borderTop: '2px solid #000', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 className="panel-title" style={{ margin: 0 }}>Produtos cadastrados por responsável</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: 0 }}>Produtos cadastrados por responsável</h3>
                 <button onClick={() => setMostrarProdsResponsavel(!mostrarProdsResponsavel)} className="btn-action" style={{ margin: 0 }}>
                   {mostrarProdsResponsavel ? '- Ocultar Produtos por Responsável' : '+ Ver Produtos por Responsável'}
                 </button>
@@ -516,32 +610,36 @@ export default function App() {
           </div>
         )}
 
-        {/* ABA DE ESTOQUE COM FILTROS DUPLOS (RESPONSÁVEL + LOCAL) */}
+        {/* ABA DE ESTOQUE COM FILTROS DUPLOS */}
         {aba === 'estoque' && (
           <div>
-            <h2 className="panel-title">Gestão de Estoque</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Gestão de Estoque</h2>
 
             {/* Cadastro Rápido de Produto */}
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxWidth: '800px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>Cadastrar Novo Produto / Edição</h3>
               {estoqueMsg && <div style={{ padding: '8px', background: '#DCFCE7', color: '#166534', borderRadius: '4px', marginBottom: '10px', fontSize: '13px' }}>{estoqueMsg}</div>}
 
-              <form onSubmit={handleCadastrarProdutoEstoque}>
-                <label>Título do Produto / Edição
-                  <input type="text" placeholder="Ex: Encrenca 4 ou Adesivo Zine" value={novoTitulo} onChange={e => setNovoTitulo(e.target.value)} required />
+              <form onSubmit={handleCadastrarProdutoEstoque} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                  Título do Produto / Edição
+                  <input type="text" placeholder="Ex: Encrenca 4 ou Adesivo Zine" value={novoTitulo} onChange={e => setNovoTitulo(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
                 </label>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <label>Preço sugerido (R$)
-                    <input type="text" placeholder="0,00" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} />
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                    Preço sugerido (R$)
+                    <input type="text" placeholder="0,00" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
                   </label>
-                  <label>Quantidade inicial em estoque
-                    <input type="number" placeholder="0" value={novoEstoqueQtd} onChange={e => setNovoEstoqueQtd(e.target.value)} />
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                    Quantidade inicial em estoque
+                    <input type="number" placeholder="0" value={novoEstoqueQtd} onChange={e => setNovoEstoqueQtd(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
                   </label>
                 </div>
 
-                <label>Responsável / Proprietário
-                  <select value={novoDonoId} onChange={e => setNovoDonoId(e.target.value)}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                  Responsável / Proprietário
+                  <select value={novoDonoId} onChange={e => setNovoDonoId(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
                     <option value="">Coletivo (Encrenca)</option>
                     {d.pessoas?.filter(p => p.ativa !== false).map(p => (
                       <option key={p.id} value={p.id}>{p.nome}</option>
@@ -549,15 +647,16 @@ export default function App() {
                   </select>
                 </label>
 
-                <button type="submit">Cadastrar Produto</button>
+                <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>Cadastrar Produto</button>
               </form>
             </div>
 
             {/* Painel de Filtros Duplos */}
-            <h3 className="panel-title">Estoque Atual de Produtos</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px' }}>Estoque Atual de Produtos</h3>
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '14px', borderRadius: '8px', marginBottom: '20px', maxWidth: '800px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <label style={{ margin: 0 }}>Filtrar por Responsável:
-                <select value={filtroEstoqueDono} onChange={e => setFiltroEstoqueDono(e.target.value)} style={{ marginTop: '4px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Filtrar por Responsável:
+                <select value={filtroEstoqueDono} onChange={e => setFiltroEstoqueDono(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
                   <option value="todos">Todos os Responsáveis</option>
                   <option value="coletivo">Coletivo (Encrenca)</option>
                   {d.pessoas?.filter(p => p.ativa !== false).map(p => (
@@ -566,8 +665,9 @@ export default function App() {
                 </select>
               </label>
 
-              <label style={{ margin: 0 }}>Filtrar por Local de Estoque:
-                <select value={filtroEstoqueLocal} onChange={e => setFiltroEstoqueLocal(e.target.value)} style={{ marginTop: '4px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Filtrar por Local de Estoque:
+                <select value={filtroEstoqueLocal} onChange={e => setFiltroEstoqueLocal(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
                   <option value="todos">Todos os Locais</option>
                   {d.locais?.map(l => (
                     <option key={l.id} value={l.id}>{l.nome}</option>
@@ -576,7 +676,7 @@ export default function App() {
               </label>
             </div>
 
-            {/* Tabela de Estoque Atual com Ajuste Rápido */}
+            {/* Tabela de Estoque Atual */}
             <div className="table-container" style={{ maxWidth: '800px' }}>
               <table className="data-table">
                 <thead>
@@ -638,12 +738,13 @@ export default function App() {
         {/* ABA REGISTRAR REPASSE */}
         {aba === 'repasses' && (
           <div>
-            <h2 className="panel-title">Registrar Repasse para Pessoa Cadastrada</h2>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Registrar Repasse para Pessoa Cadastrada</h2>
             {repasseMsg && <div style={{ background: '#DCFCE7', color: '#166534', padding: '10px', borderRadius: '6px', marginBottom: '12px', border: '1px solid #86EFAC' }}>{repasseMsg}</div>}
 
-            <form onSubmit={handleSalvarRepasse}>
-              <label>Pessoa beneficiária do repasse
-                <select value={repassePessoaId} onChange={e => setRepassePessoaId(e.target.value)} required>
+            <form onSubmit={handleSalvarRepasse} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '600px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Pessoa beneficiária do repasse
+                <select value={repassePessoaId} onChange={e => setRepassePessoaId(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
                   <option value="">Selecione a pessoa</option>
                   {d.pessoas?.filter(p => p.ativa !== false).map(p => (
                     <option key={p.id} value={p.id}>
@@ -653,25 +754,17 @@ export default function App() {
                 </select>
               </label>
 
-              <label>Valor repassado (R$)
-                <input 
-                  inputMode="decimal" 
-                  placeholder="0,00" 
-                  value={repasseValor} 
-                  onChange={e => setRepasseValor(e.target.value)} 
-                  required 
-                />
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Valor repassado (R$)
+                <input inputMode="decimal" placeholder="0,00" value={repasseValor} onChange={e => setRepasseValor(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
               </label>
 
-              <label>Observação (opcional)
-                <input 
-                  placeholder="Ex: Transferência via Pix realizada" 
-                  value={repasseObs} 
-                  onChange={e => setRepasseObs(e.target.value)} 
-                />
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                Observação (opcional)
+                <input placeholder="Ex: Transferência via Pix realizada" value={repasseObs} onChange={e => setRepasseObs(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
               </label>
 
-              <button type="submit">Salvar Repasse</button>
+              <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>Salvar Repasse</button>
             </form>
           </div>
         )}
