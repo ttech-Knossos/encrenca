@@ -27,9 +27,11 @@ export default function App() {
   const [mostrarMaisEdicoes, setMostrarMaisEdicoes] = useState(false)
   const [mostrarEstoqueProduto, setMostrarEstoqueProduto] = useState(false)
   const [mostrarDinheiroPessoas, setMostrarDinheiroPessoas] = useState(false)
+  const [mostrarProdsResponsavel, setMostrarProdsResponsavel] = useState(false)
 
-  // Filtro da Tela de Estoque
+  // Filtros da Tela de Estoque
   const [filtroEstoqueDono, setFiltroEstoqueDono] = useState<string>('todos')
+  const [filtroEstoqueLocal, setFiltroEstoqueLocal] = useState<string>('todos')
 
   // Formulário de Repasse
   const [repassePessoaId, setRepassePessoaId] = useState('')
@@ -268,16 +270,26 @@ export default function App() {
 
   const totalValoresDevidosColetivo = Object.values(valoresDevidosPorPessoa).reduce((acc, curr) => acc + Math.max(0, curr), 0)
 
-  // Filtro de exibição na aba de estoque
+  // Filtro Duplo da Aba de Estoque (por Responsável e por Local)
   const edicoesFiltradasEstoque = d.edicoes?.filter(e => {
-    if (filtroEstoqueDono === 'coletivo') return !e.proprietario_id
-    if (filtroEstoqueDono === 'todos') return true
-    return String(e.proprietario_id) === String(filtroEstoqueDono)
+    // Filtro 1: Responsável / Proprietário
+    let passaDono = true
+    if (filtroEstoqueDono === 'coletivo') passaDono = !e.proprietario_id
+    else if (filtroEstoqueDono !== 'todos') passaDono = String(e.proprietario_id) === String(filtroEstoqueDono)
+
+    // Filtro 2: Local do Estoque
+    let passaLocal = true
+    if (filtroEstoqueLocal !== 'todos') {
+      const temSaldoNoLocal = d.saldos?.some(s => String(s.edicao_id) === String(e.id) && String(s.local_id) === String(filtroEstoqueLocal) && (s.qtd || 0) > 0)
+      passaLocal = temSaldoNoLocal
+    }
+
+    return passaDono && passaLocal
   }) || []
 
   return (
     <div>
-      {/* Topo Roxo com Logo e Botão Sair Verde Limão */}
+      {/* Topo Roxo */}
       <header className="top-header">
         <div className="brand-logo-box">
           <img 
@@ -297,7 +309,7 @@ export default function App() {
       </header>
 
       <div className="main-wrapper">
-        {/* Menu Principal de Abas Verdes */}
+        {/* Menu Principal */}
         <nav className="menu-tabs">
           <button onClick={() => setAba('visao_geral')} className={aba === 'visao_geral' ? 'ativo' : ''}>Visão geral</button>
           <button onClick={() => setAba('venda')} className={aba === 'venda' ? 'ativo' : ''}>Registrar venda</button>
@@ -306,12 +318,12 @@ export default function App() {
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL EM GRADE LADO A LADO */}
+        {/* VISÃO GERAL / PAINEL EM CARDS QUADRADINHOS */}
         {aba === 'visao_geral' && (
           <div>
             <h2 className="panel-title">Painel</h2>
 
-            {/* Linha 1 de Cards do Painel (Grade Compacta) */}
+            {/* Linha 1 de Cards em Quadradinhos Lado a Lado */}
             <div className="cards-row">
               <div className="metric-card">
                 <div className="label">Exemplares Encrenca<br/>Vendidos (Total)</div>
@@ -457,64 +469,59 @@ export default function App() {
               )}
             </div>
 
-            {/* PRODUTOS CADASTRADOS POR RESPONSÁVEL COM LINKS DE FILTRO */}
+            {/* SEÇÃO EXPANSÍVEL: PRODUTOS CADASTRADOS POR RESPONSÁVEL */}
             <div style={{ marginTop: '20px', borderTop: '2px solid #000', paddingTop: '16px' }}>
-              <h3 className="panel-title">Produtos cadastrados por responsável</h3>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Responsável / Proprietário</th>
-                      <th>Qtd de Produtos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>Coletivo (Encrenca)</strong></td>
-                      <td>
-                        <button onClick={() => irParaEstoqueComFiltro('coletivo')} className="link-filtro">
-                          {edicoesEncrenca.length} produtos (Ver no estoque)
-                        </button>
-                      </td>
-                    </tr>
-                    {d.pessoas?.filter(p => p.ativa !== false).map(p => {
-                      const prodsPessoa = d.edicoes?.filter(e => String(e.proprietario_id) === String(p.id)) || []
-                      return (
-                        <tr key={p.id}>
-                          <td>{p.nome}</td>
-                          <td>
-                            <button onClick={() => irParaEstoqueComFiltro(String(p.id))} className="link-filtro">
-                              {prodsPessoa.length} produtos (Ver no estoque)
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 className="panel-title" style={{ margin: 0 }}>Produtos cadastrados por responsável</h3>
+                <button onClick={() => setMostrarProdsResponsavel(!mostrarProdsResponsavel)} className="btn-action" style={{ margin: 0 }}>
+                  {mostrarProdsResponsavel ? '- Ocultar Produtos por Responsável' : '+ Ver Produtos por Responsável'}
+                </button>
               </div>
+
+              {mostrarProdsResponsavel && (
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Responsável / Proprietário</th>
+                        <th>Qtd de Produtos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Coletivo (Encrenca)</strong></td>
+                        <td>
+                          <button onClick={() => irParaEstoqueComFiltro('coletivo')} className="link-filtro">
+                            {edicoesEncrenca.length} produtos (Ver no estoque)
+                          </button>
+                        </td>
+                      </tr>
+                      {d.pessoas?.filter(p => p.ativa !== false).map(p => {
+                        const prodsPessoa = d.edicoes?.filter(e => String(e.proprietario_id) === String(p.id)) || []
+                        return (
+                          <tr key={p.id}>
+                            <td>{p.nome}</td>
+                            <td>
+                              <button onClick={() => irParaEstoqueComFiltro(String(p.id))} className="link-filtro">
+                                {prodsPessoa.length} produtos (Ver no estoque)
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
           </div>
         )}
 
-        {/* ABA DE ESTOQUE COM FILTROS */}
+        {/* ABA DE ESTOQUE COM FILTROS DUPLOS (RESPONSÁVEL + LOCAL) */}
         {aba === 'estoque' && (
           <div>
             <h2 className="panel-title">Gestão de Estoque</h2>
-
-            {/* Filtros de Estoque */}
-            <div style={{ background: '#FFF', border: '2px solid #000', padding: '14px', borderRadius: '8px', marginBottom: '20px', maxWidth: '800px' }}>
-              <label style={{ margin: 0 }}>Filtrar Produtos por Responsável / Proprietário:
-                <select value={filtroEstoqueDono} onChange={e => setFiltroEstoqueDono(e.target.value)} style={{ marginTop: '6px' }}>
-                  <option value="todos">Todos os Produtos</option>
-                  <option value="coletivo">Coletivo (Encrenca)</option>
-                  {d.pessoas?.filter(p => p.ativa !== false).map(p => (
-                    <option key={p.id} value={p.id}>{p.nome}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
 
             {/* Cadastro Rápido de Produto */}
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxWidth: '800px', boxShadow: '2px 2px 0 #000' }}>
@@ -548,8 +555,30 @@ export default function App() {
               </form>
             </div>
 
-            {/* Tabela de Estoque Atual com Ajuste Rápido */}
+            {/* Painel de Filtros Duplos */}
             <h3 className="panel-title">Estoque Atual de Produtos</h3>
+            <div style={{ background: '#FFF', border: '2px solid #000', padding: '14px', borderRadius: '8px', marginBottom: '20px', maxWidth: '800px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <label style={{ margin: 0 }}>Filtrar por Responsável:
+                <select value={filtroEstoqueDono} onChange={e => setFiltroEstoqueDono(e.target.value)} style={{ marginTop: '4px' }}>
+                  <option value="todos">Todos os Responsáveis</option>
+                  <option value="coletivo">Coletivo (Encrenca)</option>
+                  {d.pessoas?.filter(p => p.ativa !== false).map(p => (
+                    <option key={p.id} value={p.id}>{p.nome}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ margin: 0 }}>Filtrar por Local de Estoque:
+                <select value={filtroEstoqueLocal} onChange={e => setFiltroEstoqueLocal(e.target.value)} style={{ marginTop: '4px' }}>
+                  <option value="todos">Todos os Locais</option>
+                  {d.locais?.map(l => (
+                    <option key={l.id} value={l.id}>{l.nome}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {/* Tabela de Estoque Atual com Ajuste Rápido */}
             <div className="table-container" style={{ maxWidth: '800px' }}>
               <table className="data-table">
                 <thead>
@@ -565,7 +594,7 @@ export default function App() {
                   {edicoesFiltradasEstoque.map(e => {
                     const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
                     const localPadrao = d.locais?.[0]
-                    const saldo = d.saldos?.find(s => String(s.edicao_id) === String(e.id))
+                    const saldo = d.saldos?.find(s => String(s.edicao_id) === String(e.id) && (filtroEstoqueLocal === 'todos' || String(s.local_id) === String(filtroEstoqueLocal)))
                     const qtdAtual = saldo?.qtd || 0
                     const localNome = d.locais?.find(l => String(l.id) === String(saldo?.local_id))?.nome || localPadrao?.nome || 'Estoque Geral'
 
@@ -598,7 +627,7 @@ export default function App() {
                   })}
                   {edicoesFiltradasEstoque.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: '#666' }}>Nenhum produto encontrado para este filtro.</td>
+                      <td colSpan={5} style={{ textAlign: 'center', color: '#666' }}>Nenhum produto encontrado com os filtros selecionados.</td>
                     </tr>
                   )}
                 </tbody>
