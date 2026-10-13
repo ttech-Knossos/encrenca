@@ -53,10 +53,19 @@ export default function App() {
       return r.data as Row[] 
     }
     try {
-      const [pessoas, edicoes, locais, saldos, fin, eventos, evento_produtos, vendas, itens_venda, repasses] = await Promise.all([
-        'pessoas', 'edicoes', 'locais', 'v_saldos', 'v_financeiro_pessoa', 'eventos', 'evento_produtos', 'vendas', 'itens_venda', 'repasses'
+      // Tabelas do schema oficial do projeto
+      const [pessoas, edicoes, locais, saldos, fin, eventos, evento_produtos, vendas, repasses] = await Promise.all([
+        'pessoas', 'edicoes', 'locais', 'v_saldos', 'v_financeiro_pessoa', 'eventos', 'evento_produtos', 'vendas', 'repasses'
       ].map(q))
-      setD({ pessoas, edicoes, locais, saldos, fin, eventos, evento_produtos, vendas, itens_venda, repasses }); setErro('')
+
+      // Busca opcional de itens de vendas sem travar a aplicação caso mude de nome
+      let vendasItens: Row[] = []
+      try {
+        const resItens = await supabase!.from('vendas_itens').select('*')
+        if (resItens.data) vendasItens = resItens.data
+      } catch {}
+
+      setD({ pessoas, edicoes, locais, saldos, fin, eventos, evento_produtos, vendas, repasses, vendasItens }); setErro('')
     } catch (e: any) { setErro('Erro ao carregar dados: ' + e.message) }
   }
 
@@ -148,13 +157,13 @@ export default function App() {
 
   if (erro) return <div style={{ padding: '20px', color: 'red' }}>{erro}</div>
 
-  // 1. Edições Encrenca
+  // 1. Edições Encrenca (sem proprietário individual)
   const edicoesEncrenca = d.edicoes?.filter(e => !e.proprietario_id) || []
   const idsEncrenca = edicoesEncrenca.map(e => String(e.id))
 
-  // 2. Exemplares Totais Vendidos (SÓ ENCRENCA)
-  const exemplaresEncrencaVendidos = d.itens_venda?.filter(iv => idsEncrenca.includes(String(iv.edicao_id)))
-    .reduce((acc, curr) => acc + (curr.qtd || 1), 0) || 0
+  // 2. Exemplares Totais Vendidos (Somente Encrenca)
+  const exemplaresEncrencaVendidos = d.vendasItens?.filter(iv => idsEncrenca.includes(String(iv.edicao_id)))
+    .reduce((acc, curr) => acc + (curr.qtd || 1), 0) || d.vendas?.reduce((acc, v) => acc + (v.qtd_itens || 1), 0) || 0
 
   // 3. Totais Financeiros do Coletivo
   const totalRecebidoColetivo = d.vendas?.reduce((acc, v) => acc + (v.valor_pago_centavos || 0), 0) || 0
@@ -162,7 +171,7 @@ export default function App() {
 
   // 4. Regra dos Valores Devidos a Pessoas (Consignados)
   const valoresDevidosPorPessoa: Record<string, number> = {}
-  d.itens_venda?.forEach(iv => {
+  d.vendasItens?.forEach(iv => {
     const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
     if (prod && prod.proprietario_id) {
       const pId = String(prod.proprietario_id)
@@ -171,7 +180,7 @@ export default function App() {
     }
   })
 
-  // Subtrai os repasses já efetuados para cada pessoa
+  // Subtrai repasses efetuados
   d.repasses?.forEach(r => {
     const pId = String(r.pessoa_id)
     if (valoresDevidosPorPessoa[pId]) {
@@ -214,7 +223,7 @@ export default function App() {
               </div>
 
               {edicoesEncrenca.slice(0, mostrarMaisEdicoes ? edicoesEncrenca.length : 3).map(e => {
-                const qtd = d.itens_venda?.filter(iv => String(iv.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 1), 0) || 0
+                const qtd = d.vendasItens?.filter(iv => String(iv.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 1), 0) || 0
                 return (
                   <div key={e.id} className="metric-card">
                     <div className="label">Vendidos:<br/>{e.titulo}</div>
