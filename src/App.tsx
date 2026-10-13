@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import './styles.css'
 import { VendaForm } from './VendaForm'
-import { Vendas, Repasses } from './Relatorios'
 import { Cadastros, Estoque } from './Extras'
 
 type Row = Record<string, any>
@@ -20,7 +19,7 @@ export default function App() {
   const [loginErro, setLoginErro] = useState('')
   const [carregandoLogin, setCarregandoLogin] = useState(false)
 
-  const [aba, setAba] = useState<'visao_geral' | 'venda' | 'vendas' | 'repasses' | 'estoque' | 'cadastros'>('visao_geral')
+  const [aba, setAba] = useState<'visao_geral' | 'venda' | 'estoque' | 'cadastros'>('visao_geral')
   const [d, setD] = useState<Dados>({})
   const [erro, setErro] = useState('')
 
@@ -93,7 +92,6 @@ export default function App() {
 
   if (erro) return <div style={{ padding: '20px', color: 'red' }}>{erro}</div>
 
-  // Métricas do Painel
   const totalExemplaresEstoque = d.saldos?.reduce((acc, curr) => acc + (curr.qtd || 0), 0) || 0
   const exemplaresVendidos = d.vendas?.reduce((acc, v) => acc + (v.qtd_itens || 1), 0) || 0
   const valorProdutosVendidos = d.vendas?.reduce((acc, v) => acc + (v.valor_total_centavos || 0), 0) || 0
@@ -102,7 +100,6 @@ export default function App() {
 
   return (
     <div>
-      {/* Faixa Roxa Superior com Logo e Título DESENCRENCA */}
       <header className="top-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div className="brand-logo-box">
@@ -114,22 +111,17 @@ export default function App() {
       </header>
 
       <div className="main-wrapper">
-        {/* Navegação por Abas Verdes */}
         <nav className="menu-tabs">
           <button onClick={() => setAba('visao_geral')} className={aba === 'visao_geral' ? 'ativo' : ''}>Visão geral</button>
           <button onClick={() => setAba('venda')} className={aba === 'venda' ? 'ativo' : ''}>Registrar venda</button>
-          <button onClick={() => setAba('vendas')} className={aba === 'vendas' ? 'ativo' : ''}>Vendas</button>
-          <button onClick={() => setAba('repasses')} className={aba === 'repasses' ? 'ativo' : ''}>Registrar repasse</button>
           <button onClick={() => setAba('estoque')} className={aba === 'estoque' ? 'ativo' : ''}>Estoque</button>
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros</button>
         </nav>
 
-        {/* ESTRUTURA DO PAINEL DA SUA IMAGEM */}
         {aba === 'visao_geral' && (
           <div>
             <h2 className="panel-title">Painel</h2>
 
-            {/* Linha 1 de Cards */}
             <div className="cards-row">
               <div className="metric-card">
                 <div className="label">Exemplares em estoque<br/>(agora)</div>
@@ -153,7 +145,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Linha 2 de Cards */}
             <div className="cards-row">
               <div className="metric-card">
                 <div className="label">Pendente de clientes<br/>(agora)</div>
@@ -177,7 +168,6 @@ export default function App() {
               Totais acumulados desde o início do uso do app (sem pendências anteriores). Não são lucro nem saldo em caixa.
             </div>
 
-            {/* Tabela Estoque por local */}
             <h3 className="panel-title" style={{ marginTop: '24px' }}>Estoque por local (posição agora)</h3>
             <button className="btn-export">Exportar estoque (CSV)</button>
 
@@ -206,7 +196,6 @@ export default function App() {
               </table>
             </div>
 
-            {/* Tabela Dinheiro sob responsabilidade */}
             <h3 className="panel-title" style={{ marginTop: '24px' }}>Dinheiro sob responsabilidade das pessoas (posição agora)</h3>
             <div className="table-container">
               <table className="data-table">
@@ -238,8 +227,6 @@ export default function App() {
         )}
 
         {aba === 'venda' && <VendaForm d={d} onOk={carregar} />}
-        {aba === 'vendas' && <Vendas d={d} onOk={carregar} />}
-        {aba === 'repasses' && <Repasses d={d} onOk={carregar} />}
         {aba === 'estoque' && <Estoque d={d} onOk={carregar} />}
         {aba === 'cadastros' && <Cadastros d={d} onOk={carregar} />}
       </div>
