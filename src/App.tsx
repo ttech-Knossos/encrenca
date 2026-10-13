@@ -25,8 +25,11 @@ export default function App() {
 
   // Expansores da tela Visão Geral
   const [mostrarMaisEdicoes, setMostrarMaisEdicoes] = useState(false)
-  const [mostrarEstoqueLocal, setMostrarEstoqueLocal] = useState(false)
+  const [mostrarEstoqueProduto, setMostrarEstoqueProduto] = useState(false)
   const [mostrarDinheiroPessoas, setMostrarDinheiroPessoas] = useState(false)
+
+  // Filtro da Tela de Estoque
+  const [filtroEstoqueDono, setFiltroEstoqueDono] = useState<string>('todos')
 
   // Formulário de Repasse
   const [repassePessoaId, setRepassePessoaId] = useState('')
@@ -93,6 +96,11 @@ export default function App() {
     setSession(null)
   }
 
+  function irParaEstoqueComFiltro(donoId: string) {
+    setFiltroEstoqueDono(donoId)
+    setAba('estoque')
+  }
+
   async function handleSalvarRepasse(e: React.FormEvent) {
     e.preventDefault()
     if (!repassePessoaId || !repasseValor) return
@@ -136,7 +144,6 @@ export default function App() {
 
       if (prodErr) throw prodErr
 
-      // Se informou quantidade de estoque e tem local cadastrado
       const qtd = parseInt(novoEstoqueQtd) || 0
       const localPadrao = d.locais?.[0]?.id
 
@@ -176,19 +183,19 @@ export default function App() {
   }
 
   function exportarCSV() {
-    if (!d.saldos || d.saldos.length === 0) return
-    let csv = 'Edicao;Local;Exemplares\n'
-    d.saldos.forEach(s => {
-      const ed = d.edicoes?.find(e => String(e.id) === String(s.edicao_id))?.titulo || 'Produto'
-      const loc = d.locais?.find(l => String(l.id) === String(s.local_id))?.nome || 'Local'
-      csv += `"${ed}";"${loc}";${s.qtd || 0}\n`
+    if (!d.edicoes || d.edicoes.length === 0) return
+    let csv = 'Produto/Edição;Responsável;Estoque Total\n'
+    d.edicoes.forEach(e => {
+      const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
+      const totalEstoque = d.saldos?.filter(s => String(s.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 0), 0) || 0
+      csv += `"${e.titulo}";"${dono}";${totalEstoque}\n`
     })
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'estoque_por_local.csv'
+    a.download = 'estoque_por_produto.csv'
     a.click()
   }
 
@@ -197,7 +204,18 @@ export default function App() {
       <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '36px', objectFit: 'contain' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{ height: '36px', objectFit: 'contain' }} 
+              onError={(e) => {
+                if (e.currentTarget.src.includes('/logo.png')) {
+                  e.currentTarget.src = 'logo.png'
+                } else {
+                  e.currentTarget.style.display = 'none'
+                }
+              }} 
+            />
             <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
           </div>
           <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
@@ -229,7 +247,7 @@ export default function App() {
   const totalRecebidoColetivo = d.vendas?.reduce((acc, v) => acc + (v.valor_pago_centavos || 0), 0) || 0
   const pendenteClientes = d.vendas?.reduce((acc, v) => acc + Math.max(0, (v.valor_total_centavos || 0) - (v.valor_pago_centavos || 0)), 0) || 0
 
-  // 4. Regra dos Valores Devidos a Pessoas (Sem usar a palavra consignados)
+  // 4. Regra dos Valores Devidos a Pessoas
   const valoresDevidosPorPessoa: Record<string, number> = {}
   d.vendasItens?.forEach(iv => {
     const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
@@ -250,12 +268,29 @@ export default function App() {
 
   const totalValoresDevidosColetivo = Object.values(valoresDevidosPorPessoa).reduce((acc, curr) => acc + Math.max(0, curr), 0)
 
+  // Filtro de exibição na aba de estoque
+  const edicoesFiltradasEstoque = d.edicoes?.filter(e => {
+    if (filtroEstoqueDono === 'coletivo') return !e.proprietario_id
+    if (filtroEstoqueDono === 'todos') return true
+    return String(e.proprietario_id) === String(filtroEstoqueDono)
+  }) || []
+
   return (
     <div>
-      {/* Topo Roxo com Logo e Botão Verde */}
+      {/* Topo Roxo com Logo e Botão Sair Verde Limão */}
       <header className="top-header">
         <div className="brand-logo-box">
-          <img src="/logo.png" alt="Logo" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            onError={(e) => { 
+              if (e.currentTarget.src.includes('/logo.png')) {
+                e.currentTarget.src = 'logo.png'
+              } else {
+                e.currentTarget.style.display = 'none' 
+              }
+            }} 
+          />
         </div>
         <div className="brand-title">DESENCRENCA</div>
         <button onClick={handleLogout} className="btn-sair">Sair</button>
@@ -271,12 +306,12 @@ export default function App() {
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL LADO A LADO */}
+        {/* VISÃO GERAL / PAINEL EM GRADE LADO A LADO */}
         {aba === 'visao_geral' && (
           <div>
             <h2 className="panel-title">Painel</h2>
 
-            {/* Linha 1 de Cards em Grade Lado a Lado */}
+            {/* Linha 1 de Cards do Painel (Grade Compacta) */}
             <div className="cards-row">
               <div className="metric-card">
                 <div className="label">Exemplares Encrenca<br/>Vendidos (Total)</div>
@@ -332,16 +367,16 @@ export default function App() {
               Totais acumulados desde o início do uso do app. Não são lucro nem saldo em caixa.
             </div>
 
-            {/* SEÇÃO EXPANSÍVEL: ESTOQUE POR LOCAL */}
+            {/* SEÇÃO EXPANSÍVEL: ESTOQUE POR PRODUTO */}
             <div style={{ marginTop: '24px', borderTop: '2px solid #000', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 className="panel-title" style={{ margin: 0 }}>Estoque por local (posição agora)</h3>
-                <button onClick={() => setMostrarEstoqueLocal(!mostrarEstoqueLocal)} className="btn-action" style={{ margin: 0 }}>
-                  {mostrarEstoqueLocal ? '- Ocultar Estoque por Local' : '+ Ver Estoque por Local'}
+                <h3 className="panel-title" style={{ margin: 0 }}>Estoque por produto (posição agora)</h3>
+                <button onClick={() => setMostrarEstoqueProduto(!mostrarEstoqueProduto)} className="btn-action" style={{ margin: 0 }}>
+                  {mostrarEstoqueProduto ? '- Ocultar Estoque por Produto' : '+ Ver Estoque por Produto'}
                 </button>
               </div>
 
-              {mostrarEstoqueLocal && (
+              {mostrarEstoqueProduto && (
                 <div>
                   <button onClick={exportarCSV} className="btn-action" style={{ marginBottom: '12px' }}>
                     Exportar estoque (CSV)
@@ -351,20 +386,20 @@ export default function App() {
                     <table className="data-table">
                       <thead>
                         <tr>
-                          <th>Edição</th>
-                          <th>Local</th>
-                          <th>Exemplares</th>
+                          <th>Produto / Edição</th>
+                          <th>Proprietário / Responsável</th>
+                          <th>Exemplares em Estoque</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {d.saldos?.map((s, idx) => {
-                          const ed = d.edicoes?.find(e => String(e.id) === String(s.edicao_id))?.titulo || 'Produto'
-                          const loc = d.locais?.find(l => String(l.id) === String(s.local_id))?.nome || 'Local'
+                        {d.edicoes?.map((e) => {
+                          const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
+                          const qtdTotal = d.saldos?.filter(s => String(s.edicao_id) === String(e.id)).reduce((acc, curr) => acc + (curr.qtd || 0), 0) || 0
                           return (
-                            <tr key={idx}>
-                              <td>{ed}</td>
-                              <td>{loc}</td>
-                              <td style={{ fontWeight: 'bold' }}>{s.qtd ?? 0}</td>
+                            <tr key={e.id}>
+                              <td>{e.titulo}</td>
+                              <td>{dono}</td>
+                              <td style={{ fontWeight: 'bold' }}>{qtdTotal} un</td>
                             </tr>
                           )
                         })}
@@ -422,7 +457,7 @@ export default function App() {
               )}
             </div>
 
-            {/* PRODUTOS E RESPONSABILIDADE DE CADA PESSOA */}
+            {/* PRODUTOS CADASTRADOS POR RESPONSÁVEL COM LINKS DE FILTRO */}
             <div style={{ marginTop: '20px', borderTop: '2px solid #000', paddingTop: '16px' }}>
               <h3 className="panel-title">Produtos cadastrados por responsável</h3>
               <div className="table-container">
@@ -436,14 +471,22 @@ export default function App() {
                   <tbody>
                     <tr>
                       <td><strong>Coletivo (Encrenca)</strong></td>
-                      <td><strong>{edicoesEncrenca.length} produtos</strong></td>
+                      <td>
+                        <button onClick={() => irParaEstoqueComFiltro('coletivo')} className="link-filtro">
+                          {edicoesEncrenca.length} produtos (Ver no estoque)
+                        </button>
+                      </td>
                     </tr>
                     {d.pessoas?.filter(p => p.ativa !== false).map(p => {
                       const prodsPessoa = d.edicoes?.filter(e => String(e.proprietario_id) === String(p.id)) || []
                       return (
                         <tr key={p.id}>
                           <td>{p.nome}</td>
-                          <td>{prodsPessoa.length} produtos</td>
+                          <td>
+                            <button onClick={() => irParaEstoqueComFiltro(String(p.id))} className="link-filtro">
+                              {prodsPessoa.length} produtos (Ver no estoque)
+                            </button>
+                          </td>
                         </tr>
                       )
                     })}
@@ -455,13 +498,26 @@ export default function App() {
           </div>
         )}
 
-        {/* ABA DE ESTOQUE SIMPLIFICADA (CONSULTA, AJUSTE RÁPIDO E CADASTRO) */}
+        {/* ABA DE ESTOQUE COM FILTROS */}
         {aba === 'estoque' && (
           <div>
             <h2 className="panel-title">Gestão de Estoque</h2>
 
-            {/* Formulário Simples para Adicionar / Cadastrar Produto */}
-            <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxWidth: '650px', boxShadow: '2px 2px 0 #000' }}>
+            {/* Filtros de Estoque */}
+            <div style={{ background: '#FFF', border: '2px solid #000', padding: '14px', borderRadius: '8px', marginBottom: '20px', maxWidth: '800px' }}>
+              <label style={{ margin: 0 }}>Filtrar Produtos por Responsável / Proprietário:
+                <select value={filtroEstoqueDono} onChange={e => setFiltroEstoqueDono(e.target.value)} style={{ marginTop: '6px' }}>
+                  <option value="todos">Todos os Produtos</option>
+                  <option value="coletivo">Coletivo (Encrenca)</option>
+                  {d.pessoas?.filter(p => p.ativa !== false).map(p => (
+                    <option key={p.id} value={p.id}>{p.nome}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {/* Cadastro Rápido de Produto */}
+            <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxWidth: '800px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>Cadastrar Novo Produto / Edição</h3>
               {estoqueMsg && <div style={{ padding: '8px', background: '#DCFCE7', color: '#166534', borderRadius: '4px', marginBottom: '10px', fontSize: '13px' }}>{estoqueMsg}</div>}
 
@@ -492,8 +548,8 @@ export default function App() {
               </form>
             </div>
 
-            {/* Tabela de Estoque Atual com Ajuste Rápido (+ / -) */}
-            <h3 className="panel-title">Estoque Atual dos Produtos</h3>
+            {/* Tabela de Estoque Atual com Ajuste Rápido */}
+            <h3 className="panel-title">Estoque Atual de Produtos</h3>
             <div className="table-container" style={{ maxWidth: '800px' }}>
               <table className="data-table">
                 <thead>
@@ -506,8 +562,8 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {d.edicoes?.map(e => {
-                    const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo'
+                  {edicoesFiltradasEstoque.map(e => {
+                    const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
                     const localPadrao = d.locais?.[0]
                     const saldo = d.saldos?.find(s => String(s.edicao_id) === String(e.id))
                     const qtdAtual = saldo?.qtd || 0
@@ -540,6 +596,11 @@ export default function App() {
                       </tr>
                     )
                   })}
+                  {edicoesFiltradasEstoque.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', color: '#666' }}>Nenhum produto encontrado para este filtro.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
