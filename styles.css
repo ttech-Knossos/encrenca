@@ -1,6 +1,6 @@
 :root {
   --bg-app: #FAF7F0;
-  --header-purple: #7C3AED;
+  --header-purple: #8A41F6;
   --lime-green: #C5FF27;
   --border-black: #000000;
   --card-bg: #FFFFFF;
@@ -19,22 +19,21 @@ body {
   min-height: 100vh;
 }
 
-/* Header Roxo 100% de Largura */
+/* Header Roxo 100% */
 .top-header {
   background-color: var(--header-purple);
-  min-height: 64px;
+  min-height: 60px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
   border-bottom: 2px solid var(--border-black);
-  position: relative;
 }
 
 .top-header .brand-logo-box {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border: 2px dashed var(--lime-green);
   display: flex;
   align-items: center;
@@ -56,33 +55,38 @@ body {
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
 }
 
+/* Botão Sair Verde Limão */
 .btn-sair {
   background: var(--lime-green);
+  color: #000000;
   border: 2px solid var(--border-black);
   border-radius: 6px;
   padding: 6px 16px;
   font-weight: bold;
   cursor: pointer;
   font-size: 14px;
-  box-shadow: 2px 2px 0px #000;
+  box-shadow: 2px 2px 0px #000000;
+  transition: transform 0.1s;
+}
+
+.btn-sair:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000000;
 }
 
 /* Área Principal */
 .main-wrapper {
-  padding: 24px;
-  max-width: 1300px;
+  padding: 20px 24px;
+  max-width: 1350px;
   margin: 0 auto;
 }
 
-/* Abas de Navegação */
+/* Menu de Abas Superior */
 nav.menu-tabs {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
@@ -96,7 +100,6 @@ nav.menu-tabs button {
   font-size: 14px;
   cursor: pointer;
   box-shadow: 2px 2px 0px #000;
-  transition: transform 0.1s;
 }
 
 nav.menu-tabs button.ativo {
@@ -104,54 +107,53 @@ nav.menu-tabs button.ativo {
   color: #FFFFFF;
 }
 
-/* Títulos do Painel */
+/* Painel e Cards em Linhas (Lado a Lado) */
 .panel-title {
   font-size: 20px;
   font-weight: 800;
   margin-bottom: 12px;
-  margin-top: 10px;
 }
 
-/* Grid de Cards Responsiva (Lado a Lado) */
 .cards-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
+/* Card com largura definida para não esticar em barras na tela */
 .metric-card {
   background: var(--card-bg);
   border: 2px solid var(--border-black);
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 10px 14px;
+  width: 210px;
+  min-height: 82px;
   box-shadow: 2px 2px 0px #000;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 85px;
 }
 
 .metric-card .label {
-  font-size: 12px;
+  font-size: 11px;
   color: #4A5568;
-  font-weight: 600;
-  margin-bottom: 6px;
   line-height: 1.2;
 }
 
 .metric-card .value {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 900;
 }
 
 .disclaimer {
   font-size: 11px;
   color: #666;
+  margin-top: 4px;
   margin-bottom: 24px;
 }
 
-/* Botões de Ação Secundários e Expansores */
+/* Botões Neobrutalistas */
 .btn-action {
   background: var(--lime-green);
   border: 2px solid var(--border-black);
@@ -164,14 +166,10 @@ nav.menu-tabs button.ativo {
   display: inline-block;
 }
 
-.btn-action:hover {
-  background: #B1EE16;
-}
-
-/* Tabelas e Contêineres */
+/* Tabelas e Caixas */
 .table-container {
   width: 100%;
-  max-width: 700px;
+  max-width: 650px;
   margin-bottom: 20px;
   background: #FFF;
   border: 2px solid var(--border-black);
@@ -185,14 +183,14 @@ table.data-table {
 }
 
 table.data-table th, table.data-table td {
-  border: 1px solid #CBD5E0;
+  border: 1px solid #000000;
   padding: 8px 12px;
   font-size: 13px;
   text-align: left;
 }
 
 table.data-table th {
-  background: #EDF2F7;
+  background: #FFFFFF;
   font-weight: bold;
 }
 
@@ -229,12 +227,12 @@ button[type="submit"] {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Celular / Mobile */
+/* Ajuste Responsivo Celular */
 @media (max-width: 768px) {
   .top-header {
     padding: 0 12px;
   }
-
+  
   .top-header .brand-title {
     font-size: 18px;
   }
@@ -254,8 +252,8 @@ button[type="submit"] {
     text-align: center;
   }
 
-  .cards-row {
-    grid-template-columns: repeat(2, 1fr);
+  .metric-card {
+    width: calc(50% - 6px);
   }
 
   .table-container {
