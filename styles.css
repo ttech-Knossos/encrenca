@@ -19,27 +19,35 @@ body {
   min-height: 100vh;
 }
 
-/* Faixa Roxa Superior de ponta a ponta */
+/* Header Roxo 100% de Largura */
 .top-header {
   background-color: var(--header-purple);
-  height: 60px;
+  min-height: 64px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 24px;
   border-bottom: 2px solid var(--border-black);
+  position: relative;
 }
 
 .top-header .brand-logo-box {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: 2px dashed var(--lime-green);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
+  background: transparent;
+}
+
+.top-header .brand-logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .top-header .brand-title {
@@ -48,6 +56,9 @@ body {
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .btn-sair {
@@ -61,18 +72,19 @@ body {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Área de Conteúdo Principal */
+/* Área Principal */
 .main-wrapper {
-  padding: 20px;
-  width: 100%;
+  padding: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
 }
 
-/* Menu de Abas Superior */
+/* Abas de Navegação */
 nav.menu-tabs {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 nav.menu-tabs button {
@@ -84,6 +96,7 @@ nav.menu-tabs button {
   font-size: 14px;
   cursor: pointer;
   box-shadow: 2px 2px 0px #000;
+  transition: transform 0.1s;
 }
 
 nav.menu-tabs button.ativo {
@@ -91,53 +104,55 @@ nav.menu-tabs button.ativo {
   color: #FFFFFF;
 }
 
-/* Painel e Cards de Métricas */
+/* Títulos do Painel */
 .panel-title {
   font-size: 20px;
   font-weight: 800;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  margin-top: 10px;
 }
 
+/* Grid de Cards Responsiva (Lado a Lado) */
 .cards-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .metric-card {
   background: var(--card-bg);
   border: 2px solid var(--border-black);
   border-radius: 8px;
-  padding: 10px 14px;
-  width: 190px;
-  min-height: 80px;
+  padding: 12px 14px;
   box-shadow: 2px 2px 0px #000;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-height: 85px;
 }
 
 .metric-card .label {
-  font-size: 11px;
+  font-size: 12px;
   color: #4A5568;
+  font-weight: 600;
+  margin-bottom: 6px;
   line-height: 1.2;
 }
 
 .metric-card .value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 900;
 }
 
 .disclaimer {
   font-size: 11px;
   color: #666;
-  margin-top: 6px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
-/* Botão Exportar CSV */
-.btn-export {
+/* Botões de Ação Secundários e Expansores */
+.btn-action {
   background: var(--lime-green);
   border: 2px solid var(--border-black);
   border-radius: 6px;
@@ -145,18 +160,23 @@ nav.menu-tabs button.ativo {
   font-weight: bold;
   font-size: 13px;
   cursor: pointer;
-  margin-bottom: 12px;
   box-shadow: 2px 2px 0px #000;
   display: inline-block;
 }
 
-/* Tabelas e Caixas */
+.btn-action:hover {
+  background: #B1EE16;
+}
+
+/* Tabelas e Contêineres */
 .table-container {
   width: 100%;
-  max-width: 520px;
-  margin-bottom: 24px;
+  max-width: 700px;
+  margin-bottom: 20px;
   background: #FFF;
   border: 2px solid var(--border-black);
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 table.data-table {
@@ -165,14 +185,14 @@ table.data-table {
 }
 
 table.data-table th, table.data-table td {
-  border: 1px solid #000000;
+  border: 1px solid #CBD5E0;
   padding: 8px 12px;
   font-size: 13px;
   text-align: left;
 }
 
 table.data-table th {
-  background: #FFFFFF;
+  background: #EDF2F7;
   font-weight: bold;
 }
 
@@ -209,14 +229,14 @@ button[type="submit"] {
   box-shadow: 2px 2px 0px #000;
 }
 
-/* Adaptabilidade no Celular */
+/* Celular / Mobile */
 @media (max-width: 768px) {
   .top-header {
     padding: 0 12px;
   }
-  
+
   .top-header .brand-title {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .main-wrapper {
@@ -234,8 +254,8 @@ button[type="submit"] {
     text-align: center;
   }
 
-  .metric-card {
-    width: calc(50% - 6px);
+  .cards-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .table-container {
