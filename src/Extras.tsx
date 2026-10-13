@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
-import { useEnvio, Aviso } from './envio'
 
 type Row = Record<string, any>
 type Dados = Record<string, Row[]>
-const cents = (s: string) => Math.round(parseFloat(s.replace(',', '.')) * 100)
 
 type Campo = { k: string; label: string; v: string; tipo?: string; opcoes?: { id: string; nome: string }[] }
 
@@ -37,7 +35,6 @@ function EditarLinha({ campos, salvar }: { campos: Campo[]; salvar: (v: Record<s
 }
 
 export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
-  const [ed, setEd] = useState({ titulo: '', numero: '', preco: '', proprietario_id: '', is_edicao: false, qtd_estoque: '0' })
   const [pe, setPe] = useState('')
   const [ev, setEv] = useState({ nome: '', data: '' })
   
@@ -50,6 +47,8 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState('')
 
+  const cents = (s: string) => Math.round(parseFloat(s.replace(',', '.')) * 100)
+
   async function run(fn: () => Promise<{ error: any }>, limpar: () => void) {
     setErro(''); setOk('')
     try { 
@@ -57,67 +56,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       if (error) setErro(error.message)
       else { limpar(); setOk('Salvo.'); onOk() } 
     } catch { setErro('Sem conexão. Seus dados continuam no formulário.') }
-  }
-
-  const novaEd = (e: React.FormEvent) => {
-    e.preventDefault()
-    run(async () => {
-      const r = await supabase!.from('edicoes').insert({
-        titulo: ed.titulo,
-        numero: ed.numero || null,
-        preco_sugerido_centavos: ed.preco ? cents(ed.preco) : 0,
-        proprietario_id: ed.proprietario_id || null,
-        is_edicao: ed.is_edicao
-      }).select('id').single()
-
-      if (r.error) return r
-
-      const qtdInicial = parseInt(ed.qtd_estoque) || 0
-      if (qtdInicial > 0) {
-        const localCentral = d.locais?.find(l => l.tipo === 'central')?.id || d.locais?.[0]?.id
-        if (localCentral) {
-          await supabase!.from('movimentos').insert({
-            tipo: 'entrada',
-            edicao_id: r.data.id,
-            destino_id: localCentral,
-            qtd: qtdInicial,
-            obs: 'Estoque inicial no cadastro'
-          })
-        }
-      }
-
-      return { error: null }
-    }, () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '', is_edicao: false, qtd_estoque: '0' }))
-  }
-
-  const ajustarEstoqueProduto = async (edicaoId: string, delta: number) => {
-    setErro(''); setOk('')
-    try {
-      const localCentral = d.locais?.find(l => l.tipo === 'central')?.id || d.locais?.[0]?.id
-      if (!localCentral) return
-
-      if (delta > 0) {
-        await supabase!.from('movimentos').insert({
-          tipo: 'entrada',
-          edicao_id: edicaoId,
-          destino_id: localCentral,
-          qtd: delta,
-          obs: 'Ajuste manual de estoque (+)'
-        })
-      } else if (delta < 0) {
-        await supabase!.from('movimentos').insert({
-          tipo: 'perda',
-          edicao_id: edicaoId,
-          origem_id: localCentral,
-          qtd: Math.abs(delta),
-          obs: 'Ajuste manual de estoque (-)'
-        })
-      }
-      setOk('Estoque atualizado!')
-      onOk()
-    } catch (err: any) {
-      setErro('Erro ao ajustar estoque: ' + err.message)
-    }
   }
 
   const criarProdutoRapidoInline = async (e: React.FormEvent) => {
@@ -222,72 +160,11 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   }
 
   return (
-    <>
+    <div>
       {erro && <div className="erro" role="alert">{erro}</div>}
       {ok && <div className="ok" role="status">{ok}</div>}
       
-      <form onSubmit={novaEd}>
-        <h2>Nova edição / Produto</h2>
-        <label>Título<input value={ed.titulo} onChange={e => setEd({ ...ed, titulo: e.target.value })} required /></label>
-        <label>Número (opcional)<input value={ed.numero} onChange={e => setEd({ ...ed, numero: e.target.value })} /></label>
-        <label>Preço sugerido (R$)<input inputMode="decimal" value={ed.preco} onChange={e => setEd({ ...ed, preco: e.target.value })} /></label>
-        <label>Estoque inicial<input type="number" min="0" value={ed.qtd_estoque} onChange={e => setEd({ ...ed, qtd_estoque: e.target.value })} required /></label>
-        
-        <label>Proprietário do produto
-          <select value={ed.proprietario_id} onChange={e => setEd({ ...ed, proprietario_id: e.target.value })}>
-            <option value="">Coletivo (Produto padrão)</option>
-            {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
-          <input 
-            type="checkbox" 
-            checked={ed.is_edicao} 
-            onChange={e => setEd({ ...ed, is_edicao: e.target.checked })} 
-            style={{ width: '18px', height: '18px', accentColor: '#8A41F6' }}
-          />
-          É uma edição da Encrenca? (Destacar no Painel)
-        </label>
-
-        <button>Salvar produto</button>
-      </form>
-
-      <h3>Edições / Produtos Cadastrados</h3>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {d.edicoes?.map(x => {
-          const dono = d.pessoas?.find(p => String(p.id) === String(x.proprietario_id))?.nome
-          const saldoCalculado = d.saldos?.filter(s => String(s.edicao_id) === String(x.id)).reduce((acc, curr) => acc + (curr.qtd || 0), 0) ?? 0
-
-          return (
-            <li key={x.id} style={{ border: '1px solid #CBD5E0', padding: '10px', marginBottom: '8px', borderRadius: '6px', background: '#FFF' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>{x.titulo}</strong> {dono ? `(De: ${dono})` : '(Coletivo)'} {x.is_edicao && '⭐ [Edição]'} {x.ativa === false && '(arquivada)'}
-                  <div style={{ fontSize: '13px', color: '#4A5568', marginTop: '4px' }}>
-                    Preço: R$ {((x.preco_sugerido_centavos ?? 0) / 100).toFixed(2).replace('.', ',')}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#EDF2F7', padding: '6px 10px', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Estoque:</span>
-                  <button type="button" onClick={() => ajustarEstoqueProduto(x.id, -1)} style={{ padding: '2px 8px', fontWeight: 'bold' }}>-</button>
-                  <span style={{ fontSize: '15px', fontWeight: 'bold', minWidth: '30px', textAlign: 'center' }}>{saldoCalculado} un</span>
-                  <button type="button" onClick={() => ajustarEstoqueProduto(x.id, 1)} style={{ padding: '2px 8px', fontWeight: 'bold' }}>+</button>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                <button onClick={() => run(async () => supabase!.from('edicoes').update({ ativa: x.ativa === false }).eq('id', x.id), () => {})}>
-                  {x.ativa === false ? 'Reativar' : 'Arquivar'}
-                </button>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-
-      <form onSubmit={novoEv}>
+      <form onSubmit={novoEv} style={{ marginBottom: '30px' }}>
         <h2>Nova feira / evento</h2>
         <label>Nome<input value={ev.nome} onChange={e => setEv({ ...ev, nome: e.target.value })} required /></label>
         <label>Data<input type="date" value={ev.data} onChange={e => setEv({ ...ev, data: e.target.value })} /></label>
@@ -414,11 +291,11 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       </form>
 
       <h3>Eventos Cadastrados</h3>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
+      <ul style={{ listStyle: 'none', padding: 0, marginBottom: '30px' }}>
         {d.eventos?.map(x => {
           const estaEditando = eventoEmEdicao === String(x.id)
           return (
-            <li key={x.id} style={{ border: '1px solid #E2E8F0', padding: '12px', marginBottom: '10px', borderRadius: '8px' }}>
+            <li key={x.id} style={{ border: '1px solid #E2E8F0', padding: '12px', marginBottom: '10px', borderRadius: '8px', background: '#FFF' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <strong>{x.nome}</strong> {x.data ? `— ${x.data}` : ''}
@@ -523,7 +400,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
         })}
       </ul>
 
-      <form onSubmit={novaPe}>
+      <form onSubmit={novaPe} style={{ marginBottom: '20px' }}>
         <h2>Nova pessoa</h2>
         <label>Nome<input value={pe} onChange={e => setPe(e.target.value)} required /></label>
         <button>Salvar pessoa</button>
@@ -541,6 +418,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
           </li>
         ))}
       </ul>
-    </>
+    </div>
   )
 }
