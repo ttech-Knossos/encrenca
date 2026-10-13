@@ -37,7 +37,7 @@ function EditarLinha({ campos, salvar }: { campos: Campo[]; salvar: (v: Record<s
 }
 
 export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
-  const [ed, setEd] = useState({ titulo: '', numero: '', preco: '', proprietario_id: '', qtd_estoque: '0' })
+  const [ed, setEd] = useState({ titulo: '', numero: '', preco: '', proprietario_id: '', is_edicao: false, qtd_estoque: '0' })
   const [pe, setPe] = useState('')
   const [ev, setEv] = useState({ nome: '', data: '' })
   
@@ -45,7 +45,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
   const [eventoEmEdicao, setEventoEmEdicao] = useState<string | null>(null)
   
   const [mostrarNovoProdRapido, setMostrarNovoProdRapido] = useState(false)
-  const [prodRapido, setProdRapido] = useState({ titulo: '', preco: '', proprietario_id: '', qtd_inicial: '1' })
+  const [prodRapido, setProdRapido] = useState({ titulo: '', preco: '', proprietario_id: '', is_edicao: false, qtd_inicial: '1' })
 
   const [erro, setErro] = useState('')
   const [ok, setOk] = useState('')
@@ -66,7 +66,8 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
         titulo: ed.titulo,
         numero: ed.numero || null,
         preco_sugerido_centavos: ed.preco ? cents(ed.preco) : 0,
-        proprietario_id: ed.proprietario_id || null
+        proprietario_id: ed.proprietario_id || null,
+        is_edicao: ed.is_edicao
       }).select('id').single()
 
       if (r.error) return r
@@ -86,7 +87,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       }
 
       return { error: null }
-    }, () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '', qtd_estoque: '0' }))
+    }, () => setEd({ titulo: '', numero: '', preco: '', proprietario_id: '', is_edicao: false, qtd_estoque: '0' }))
   }
 
   const ajustarEstoqueProduto = async (edicaoId: string, delta: number) => {
@@ -129,7 +130,8 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
         .insert({
           titulo: prodRapido.titulo,
           preco_sugerido_centavos: prodRapido.preco ? cents(prodRapido.preco) : 0,
-          proprietario_id: prodRapido.proprietario_id || null
+          proprietario_id: prodRapido.proprietario_id || null,
+          is_edicao: prodRapido.is_edicao
         })
         .select('id')
         .single()
@@ -139,7 +141,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
       } else if (data) {
         const q = parseInt(prodRapido.qtd_inicial) || 1
         setProdutosEvQtd(prev => ({ ...prev, [String(data.id)]: q }))
-        setProdRapido({ titulo: '', preco: '', proprietario_id: '', qtd_inicial: '1' })
+        setProdRapido({ titulo: '', preco: '', proprietario_id: '', is_edicao: false, qtd_inicial: '1' })
         setMostrarNovoProdRapido(false)
         setOk('Produto criado e adicionado ao evento!')
         onOk()
@@ -237,6 +239,17 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
             {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
         </label>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+          <input 
+            type="checkbox" 
+            checked={ed.is_edicao} 
+            onChange={e => setEd({ ...ed, is_edicao: e.target.checked })} 
+            style={{ width: '18px', height: '18px', accentColor: '#8A41F6' }}
+          />
+          É uma edição da Encrenca? (Destacar no Painel)
+        </label>
+
         <button>Salvar produto</button>
       </form>
 
@@ -250,7 +263,7 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
             <li key={x.id} style={{ border: '1px solid #CBD5E0', padding: '10px', marginBottom: '8px', borderRadius: '6px', background: '#FFF' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <strong>{x.titulo}</strong> {dono ? `(De: ${dono})` : '(Coletivo)'} {x.ativa === false && '(arquivada)'}
+                  <strong>{x.titulo}</strong> {dono ? `(De: ${dono})` : '(Coletivo)'} {x.is_edicao && '⭐ [Edição]'} {x.ativa === false && '(arquivada)'}
                   <div style={{ fontSize: '13px', color: '#4A5568', marginTop: '4px' }}>
                     Preço: R$ {((x.preco_sugerido_centavos ?? 0) / 100).toFixed(2).replace('.', ',')}
                   </div>
@@ -268,20 +281,6 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
                 <button onClick={() => run(async () => supabase!.from('edicoes').update({ ativa: x.ativa === false }).eq('id', x.id), () => {})}>
                   {x.ativa === false ? 'Reativar' : 'Arquivar'}
                 </button>
-                <EditarLinha 
-                  campos={[
-                    { k: 'titulo', label: 'Título', v: x.titulo },
-                    { k: 'numero', label: 'Número', v: x.numero ?? '' },
-                    { k: 'preco', label: 'Preço sugerido (R$)', v: (x.preco_sugerido_centavos / 100).toFixed(2).replace('.', ',') },
-                    { k: 'proprietario_id', label: 'Proprietário', v: x.proprietario_id ?? '', tipo: 'select', opcoes: d.pessoas?.map(p => ({ id: p.id, nome: p.nome })) }
-                  ]} 
-                  salvar={sv('edicoes', x.id, v => ({
-                    titulo: v.titulo,
-                    numero: v.numero || null,
-                    preco_sugerido_centavos: v.preco ? cents(v.preco) : 0,
-                    proprietario_id: v.proprietario_id || null
-                  }))} 
-                />
               </div>
             </li>
           )
@@ -328,6 +327,17 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
                   <option value="">Coletivo (Produto padrão)</option>
                   {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                 </select>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={prodRapido.is_edicao} 
+                    onChange={e => setProdRapido({ ...prodRapido, is_edicao: e.target.checked })} 
+                    style={{ width: '16px', height: '16px', accentColor: '#8A41F6' }}
+                  />
+                  É uma edição da Encrenca? (Destacar no Painel)
+                </label>
+
                 <label style={{ fontSize: '13px' }}>
                   Estoque inicial neste evento:
                   <input 
@@ -532,80 +542,5 @@ export function Cadastros({ d, onOk }: { d: Dados; onOk: () => void }) {
         ))}
       </ul>
     </>
-  )
-}
-
-const TIPOS: Record<string, [string, boolean, boolean]> = {
-  saldo_inicial: ['Estoque inicial', false, true],
-  entrada: ['Nova entrada/reimpressão', false, true],
-  distribuicao: ['Distribuir', true, true],
-  transferencia: ['Transferir', true, true],
-  devolucao: ['Devolver ao central', true, true],
-  cortesia: ['Cortesia', true, false],
-  perda: ['Perda', true, false]
-}
-
-export function Estoque({ d, onOk }: { d: Dados; onOk: () => void }) {
-  const vazio = { tipo: 'distribuicao', ed: '', o: '', d: '', q: '', em_nome_de: '', obs: '' }
-  const [f, setF] = useState(vazio)
-  const { msg, erro, env, enviar, incerto, descartar } = useEnvio(onOk)
-
-  const [, pO, pD] = TIPOS[f.tipo]
-  const set = (k: string) => (e: React.ChangeEvent<any>) => setF({ ...f, [k]: e.target.value })
-  const locais = (v: string, k: string) => (
-    <label>{k}
-      <select value={v} onChange={set(k === 'Sai de' ? 'o' : 'd')} required>
-        <option value="">Selecione</option>
-        {d.locais?.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
-      </select>
-    </label>
-  )
-
-  return (
-    <form onSubmit={e => {
-      e.preventDefault();
-      enviar('mover_estoque', {
-        tipo: f.tipo,
-        edicao_id: f.ed,
-        origem_id: pO ? f.o : '',
-        destino_id: pD ? f.d : '',
-        qtd: +f.q,
-        em_nome_de: f.em_nome_de || null,
-        obs: f.obs
-      }).then(ok => ok && setF(vazio))
-    }}>
-      <h2>Movimentar estoque</h2>
-      <label>O que aconteceu
-        <select value={f.tipo} onChange={set('tipo')}>
-          {Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}
-        </select>
-      </label>
-
-      <label>Edição / Produto
-        <select value={f.ed} onChange={set('ed')} required>
-          <option value="">Selecione</option>
-          {d.edicoes?.filter(x => x.ativa !== false).map(x => <option key={x.id} value={x.id}>{x.titulo}</option>)}
-        </select>
-      </label>
-
-      {pO && locais(f.o, 'Sai de')}
-      {pD && locais(f.d, 'Vai para')}
-
-      {f.tipo === 'cortesia' && (
-        <label>Cortesia para quem?
-          <select value={f.em_nome_de} onChange={set('em_nome_de')} required>
-            <option value="">Selecione a pessoa</option>
-            {d.pessoas?.filter(p => p.ativa !== false).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </label>
-      )}
-
-      <label>Quantidade<input inputMode="numeric" value={f.q} onChange={set('q')} required /></label>
-      <details><summary>Observação (opcional)</summary><input value={f.obs} onChange={set('obs')}/></details>
-      
-      <Aviso erro={erro} incerto={incerto} descartar={descartar} />
-      {msg && <div className="ok" role="status">{msg}</div>}
-      <button disabled={env}>{env ? 'Salvando…' : 'Salvar'}</button>
-    </form>
   )
 }
