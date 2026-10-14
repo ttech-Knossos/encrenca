@@ -441,7 +441,6 @@ export default function App() {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin: 0 auto;
         }
 
         .logo-img {
@@ -458,6 +457,12 @@ export default function App() {
           font-size: 26px;
           font-weight: 900;
           letter-spacing: 2px;
+        }
+
+        .header-right {
+          display: flex;
+          align-items: center;
+          gap: 16px;
         }
 
         .btn-sair-verde {
@@ -552,14 +557,15 @@ export default function App() {
         }
       `}</style>
 
-      {/* Header Roxo com Logo Centralizada */}
+      {/* Header Roxo com Logo no Canto Direito */}
       <header className="header-top">
-        <div style={{ width: '60px' }}></div>
         <div className="logo-container">
-          <img src="/logo_3.png" alt="Logo Desencrenca" className="logo-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
           <div className="logo-title">DESENCRENCA</div>
         </div>
-        <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
+        <div className="header-right">
+          <button onClick={handleLogout} className="btn-sair-verde">Sair</button>
+          <img src="/logo_3.png" alt="Logo Desencrenca" className="logo-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+        </div>
       </header>
 
       <div style={{ padding: '20px 24px', maxWidth: '1350px', margin: '0 auto' }}>
