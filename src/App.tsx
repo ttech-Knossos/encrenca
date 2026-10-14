@@ -164,6 +164,8 @@ export default function App() {
 
     try {
       const precoCentavos = novoPreco ? Math.round(parseFloat(novoPreco.replace(',', '.')) * 100) : 0
+      
+      // 1. Inserir o produto na tabela edicoes
       const { data: prodData, error: prodErr } = await supabase!.from('edicoes').insert({
         titulo: novoTitulo,
         preco_sugerido_centavos: precoCentavos,
@@ -173,15 +175,25 @@ export default function App() {
 
       if (prodErr) throw prodErr
 
+      // 2. Inserir a quantidade inicial na tabela saldos_estoque vinculada ao local correto (se informado)
       const qtd = parseInt(novoEstoqueQtd) || 0
-      const localPadrao = d.locais?.[0]?.id
+      if (qtd > 0 && prodData) {
+        // Se houver dono pessoa, tenta achar o local do tipo pessoa, senão pega o primeiro local padrão/central
+        let localAlvoId = ''
+        if (novoDonoId) {
+          const locPessoa = d.locais?.find(l => l.tipo === 'pessoa' && String(l.pessoa_id) === String(novoDonoId))
+          localAlvoId = locPessoa?.id || d.locais?.[0]?.id
+        } else {
+          localAlvoId = d.locais?.find(l => l.tipo === 'central')?.id || d.locais?.[0]?.id
+        }
 
-      if (qtd > 0 && localPadrao && prodData) {
-        await supabase!.from('saldos_estoque').insert({
-          edicao_id: prodData.id,
-          local_id: localPadrao,
-          qtd: qtd
-        })
+        if (localAlvoId) {
+          await supabase!.from('saldos_estoque').insert({
+            edicao_id: prodData.id,
+            local_id: localAlvoId,
+            qtd: qtd
+          })
+        }
       }
 
       setEstoqueMsg('Produto cadastrado com sucesso!')
@@ -349,7 +361,7 @@ export default function App() {
   const valoresDevidosPorPessoa: Record<string, number> = {}
   d.vendasItens?.forEach(iv => {
     const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
-    const venda = d.vendas?.find(v => String(v.id) === String(v.id))
+    const venda = d.vendas?.find(v => String(v.id) === String(iv.venda_id))
     
     if (prod && prod.proprietario_id && (!venda || !venda.recebedor_pessoa_id)) {
       const pId = String(prod.proprietario_id)
@@ -537,9 +549,9 @@ export default function App() {
         }
       `}</style>
 
-      {/* Header Roxo com Logo Perfeitamente Centralizada */}
+      {/* Header Roxo com Logo Centralizada */}
       <header className="header-top">
-        <div style={{ width: '60px' }}></div> {/* Espaçador esquerdo para balancear o botão sair e centralizar o logo */}
+        <div style={{ width: '60px' }}></div>
         <div className="logo-container">
           <img src="/logo_3.png" alt="Logo Desencrenca" className="logo-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
           <div className="logo-title">DESENCRENCA</div>
@@ -692,7 +704,6 @@ export default function App() {
               <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Visão Geral de Estoque de Encrenca por Pessoa</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
                 {d.locais?.map(loc => {
-                  // Filtrar apenas saldos cujos produtos possuem a flag is_edicao === true
                   const prodsNoLocalEdicoes = d.saldos?.filter(s => {
                     if (String(s.local_id) !== String(loc.id)) return false
                     const prod = d.edicoes?.find(e => String(e.id) === String(s.edicao_id))
@@ -700,8 +711,6 @@ export default function App() {
                   }) || []
 
                   const totalUnidadesLocal = prodsNoLocalEdicoes.reduce((acc, curr) => acc + (curr.qtd || 0), 0)
-                  
-                  // Encontrar uma edição correspondente neste local para permitir ajuste rápido automático
                   const primeiraEdicaoLocalId = prodsNoLocalEdicoes[0]?.edicao_id || d.edicoes?.find(e => e.is_edicao)?.id
 
                   return (
