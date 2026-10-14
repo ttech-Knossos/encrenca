@@ -80,7 +80,7 @@ export default function App() {
     }
     try {
       const [pessoas, edicoes, locais, saldos, fin, eventos, evento_produtos, vendas, repasses] = await Promise.all([
-        'pessoas', 'edicoes', 'locais', 'v_saldos', 'v_financeiro_pessoa', 'eventos', 'evento_produtos', 'vendas', 'repasses'
+        'pessoas', 'edicoes', 'locais', 'saldos_estoque', 'v_financeiro_pessoa', 'eventos', 'evento_produtos', 'vendas', 'repasses'
       ].map(q))
 
       let vendasItens: Row[] = []
@@ -165,7 +165,6 @@ export default function App() {
     try {
       const precoCentavos = novoPreco ? Math.round(parseFloat(novoPreco.replace(',', '.')) * 100) : 0
       
-      // 1. Inserir o produto na tabela edicoes
       const { data: prodData, error: prodErr } = await supabase!.from('edicoes').insert({
         titulo: novoTitulo,
         preco_sugerido_centavos: precoCentavos,
@@ -175,10 +174,8 @@ export default function App() {
 
       if (prodErr) throw prodErr
 
-      // 2. Inserir a quantidade inicial na tabela saldos_estoque vinculada ao local correto (se informado)
       const qtd = parseInt(novoEstoqueQtd) || 0
       if (qtd > 0 && prodData) {
-        // Se houver dono pessoa, tenta achar o local do tipo pessoa, senão pega o primeiro local padrão/central
         let localAlvoId = ''
         if (novoDonoId) {
           const locPessoa = d.locais?.find(l => l.tipo === 'pessoa' && String(l.pessoa_id) === String(novoDonoId))
@@ -197,6 +194,12 @@ export default function App() {
       }
 
       setEstoqueMsg('Produto cadastrado com sucesso!')
+      
+      // Mensagem some após 15 segundos
+      setTimeout(() => {
+        setEstoqueMsg('')
+      }, 15000)
+
       setNovoTitulo('')
       setNovoPreco('')
       setNovoDonoId('')
@@ -312,7 +315,6 @@ export default function App() {
 
   if (erro) return <div style={{ padding: '20px', color: 'red' }}>{erro}</div>
 
-  // PRODUTOS COM FLAG DE EDIÇÃO
   const edicoesEncrenca = d.edicoes?.filter(e => e.is_edicao || !e.proprietario_id) || []
   const edicoesSomenteComFlag = d.edicoes?.filter(e => e.is_edicao) || []
   const produtosOutrasPessoas = d.edicoes?.filter(e => !!e.proprietario_id && !e.is_edicao) || []
@@ -320,7 +322,6 @@ export default function App() {
   const idsEdicoesEncrenca = edicoesEncrenca.map(e => String(e.id))
   const idsProdutosPessoas = produtosOutrasPessoas.map(e => String(e.id))
 
-  // CÁLCULO DE EXEMPLARES VENDIDOS
   let exemplaresEncrencaVendidos = 0
   let exemplaresPessoasVendidos = 0
 
@@ -338,7 +339,6 @@ export default function App() {
     exemplaresEncrencaVendidos = d.vendas.reduce((acc, v) => acc + (v.qtd_itens || 1), 0)
   }
 
-  // CÁLCULOS FINANCEIROS
   let totalRecebidoColetivo = 0
   let totalRecebidoPessoasDireto = 0
 
@@ -379,7 +379,6 @@ export default function App() {
 
   const totalValoresDevidosColetivo = Object.values(valoresDevidosPorPessoa).reduce((acc, curr) => acc + Math.max(0, curr), 0)
 
-  // FILTRAGEM DE ESTOQUE
   const edicoesFiltradasEstoque = d.edicoes?.filter(e => {
     let passaDono = true
     if (filtroEstoqueDono === 'coletivo') passaDono = !e.proprietario_id
@@ -400,7 +399,6 @@ export default function App() {
     return passaDono && passaLocal && passaData
   }) || []
 
-  // FILTRAGEM DE VENDAS
   const vendasFiltradas = d.vendas?.filter(v => {
     let passaData = true
     if (v.created_at) {
@@ -699,7 +697,7 @@ export default function App() {
 
             </div>
 
-            {/* Bloco 3: Visão Geral de Estoque de Encrenca por Pessoa (Apenas Edições com Flag Ativada e Ajuste Automático) */}
+            {/* Bloco 3: Visão Geral de Estoque de Encrenca por Pessoa */}
             <div style={{ marginTop: '20px', background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', maxWidth: '1150px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Visão Geral de Estoque de Encrenca por Pessoa</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
@@ -907,12 +905,12 @@ export default function App() {
               </form>
             </div>
 
-            {/* Transferência de Estoque com Quantidade e Local de Origem */}
+            {/* Transferência de Estoque com Layout Corrigido (Sem Estourar) */}
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '20px', maxWidth: '850px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>Transferir Produto/Estoque para Outro Responsável</h3>
               {transfMsg && <div style={{ padding: '8px', background: '#DCFCE7', color: '#166534', borderRadius: '4px', marginBottom: '10px', fontSize: '13px' }}>{transfMsg}</div>}
 
-              <form onSubmit={handleTransferirEstoque} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
+              <form onSubmit={handleTransferirEstoque} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
                   Produto
                   <select value={transfEdicaoId} onChange={e => setTransfEdicaoId(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
