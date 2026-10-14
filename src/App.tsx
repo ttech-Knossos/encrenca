@@ -80,7 +80,7 @@ export default function App() {
     }
     try {
       const [pessoas, edicoes, locais, saldos, fin, eventos, evento_produtos, vendas, repasses] = await Promise.all([
-        'pessoas', 'edicoes', 'locais', 'saldos_estoque', 'v_financeiro_pessoa', 'eventos', 'evento_produtos', 'vendas', 'repasses'
+        'pessoas', 'edicoes', 'locais', 'v_saldos', 'v_financeiro_pessoa', 'eventos', 'evento_produtos', 'vendas', 'repasses'
       ].map(q))
 
       let vendasItens: Row[] = []
@@ -195,7 +195,7 @@ export default function App() {
 
       setEstoqueMsg('Produto cadastrado com sucesso!')
       
-      // Mensagem some após 15 segundos
+      // Mensagem some automaticamente após 15 segundos
       setTimeout(() => {
         setEstoqueMsg('')
       }, 15000)
