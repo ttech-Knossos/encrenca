@@ -40,6 +40,7 @@ export default function App() {
 
   // Transferência de Estoque com Quantidade
   const [transfEdicaoId, setTransfEdicaoId] = useState('')
+  const [transfOrigemLocalId, setTransfOrigemLocalId] = useState('')
   const [transfNovaPessoaId, setTransfNovaPessoaId] = useState('')
   const [transfQtd, setTransfQtd] = useState('1')
   const [transfMsg, setTransfMsg] = useState('')
@@ -226,8 +227,39 @@ export default function App() {
 
       if (error) throw error
 
-      setTransfMsg(`Responsabilidade de ${qtdNum} un transferida com sucesso!`)
+      let localDestinoId = ''
+      if (novoProprietarioId) {
+        const locPessoa = d.locais?.find(l => l.tipo === 'pessoa' && String(l.pessoa_id) === String(novoProprietarioId))
+        localDestinoId = locPessoa?.id || d.locais?.[0]?.id
+      } else {
+        localDestinoId = d.locais?.find(l => l.tipo === 'central')?.id || d.locais?.[0]?.id
+      }
+
+      const localOrigemId = transfOrigemLocalId || d.locais?.[0]?.id
+
+      if (localOrigemId && localDestinoId && localOrigemId !== localDestinoId) {
+        const saldoOrigem = d.saldos?.find(s => String(s.edicao_id) === String(transfEdicaoId) && String(s.local_id) === String(localOrigemId))
+        const qtdAtualOrigem = saldoOrigem?.qtd || 0
+        const novaQtdOrigem = Math.max(0, qtdAtualOrigem - qtdNum)
+
+        if (saldoOrigem?.id) {
+          await supabase!.from('saldos_estoque').update({ qtd: novaQtdOrigem }).eq('id', saldoOrigem.id)
+        }
+
+        const saldoDestino = d.saldos?.find(s => String(s.edicao_id) === String(transfEdicaoId) && String(s.local_id) === String(localDestinoId))
+        const qtdAtualDestino = saldoDestino?.qtd || 0
+        const novaQtdDestino = qtdAtualDestino + qtdNum
+
+        if (saldoDestino?.id) {
+          await supabase!.from('saldos_estoque').update({ qtd: novaQtdDestino }).eq('id', saldoDestino.id)
+        } else {
+          await supabase!.from('saldos_estoque').insert({ edicao_id: transfEdicaoId, local_id: localDestinoId, qtd: qtdNum })
+        }
+      }
+
+      setTransfMsg(`Responsabilidade e ${qtdNum} un transferidas com sucesso!`)
       setTransfEdicaoId('')
+      setTransfOrigemLocalId('')
       setTransfNovaPessoaId('')
       setTransfQtd('1')
       carregar()
@@ -317,7 +349,7 @@ export default function App() {
   const valoresDevidosPorPessoa: Record<string, number> = {}
   d.vendasItens?.forEach(iv => {
     const prod = d.edicoes?.find(e => String(e.id) === String(iv.edicao_id))
-    const venda = d.vendas?.find(v => String(v.id) === String(iv.venda_id))
+    const venda = d.vendas?.find(v => String(v.id) === String(v.id))
     
     if (prod && prod.proprietario_id && (!venda || !venda.recebedor_pessoa_id)) {
       const pId = String(prod.proprietario_id)
@@ -385,14 +417,16 @@ export default function App() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 24px;
+          padding: 0 32px;
           border-bottom: 2px solid #000;
+          width: 100%;
         }
 
         .logo-container {
           display: flex;
           align-items: center;
           gap: 12px;
+          margin: 0 auto;
         }
 
         .logo-img {
@@ -406,7 +440,7 @@ export default function App() {
 
         .logo-title {
           color: #C5FF27;
-          font-size: 24px;
+          font-size: 26px;
           font-weight: 900;
           letter-spacing: 2px;
         }
@@ -503,8 +537,9 @@ export default function App() {
         }
       `}</style>
 
-      {/* Header Roxo com Logo Exata e Centralizada */}
+      {/* Header Roxo com Logo Perfeitamente Centralizada */}
       <header className="header-top">
+        <div style={{ width: '60px' }}></div> {/* Espaçador esquerdo para balancear o botão sair e centralizar o logo */}
         <div className="logo-container">
           <img src="/logo_3.png" alt="Logo Desencrenca" className="logo-img" onError={(e) => { e.currentTarget.style.display = 'none' }} />
           <div className="logo-title">DESENCRENCA</div>
@@ -523,7 +558,7 @@ export default function App() {
           <button onClick={() => setAba('cadastros')} className={aba === 'cadastros' ? 'ativo' : ''}>Cadastros Gerais</button>
         </nav>
 
-        {/* VISÃO GERAL / PAINEL COMPLETO RESTAURADO */}
+        {/* VISÃO GERAL / PAINEL COMPLETO */}
         {aba === 'visao_geral' && (
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px' }}>Painel</h2>
@@ -601,7 +636,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* BLOCOS DETALHADOS RESTAURADOS NA VISÃO GERAL */}
+            {/* BLOCOS DETALHADOS DA VISÃO GERAL */}
             <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '1150px' }}>
               
               {/* Bloco 1: Valores Devidos a Pessoas Detalhado */}
@@ -652,17 +687,35 @@ export default function App() {
 
             </div>
 
-            {/* Bloco 3: Visão Geral de Estoque por Local */}
+            {/* Bloco 3: Visão Geral de Estoque de Encrenca por Pessoa (Apenas Edições com Flag Ativada e Ajuste Automático) */}
             <div style={{ marginTop: '20px', background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', maxWidth: '1150px', boxShadow: '2px 2px 0 #000' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Visão Geral de Estoque por Local</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>Visão Geral de Estoque de Encrenca por Pessoa</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
                 {d.locais?.map(loc => {
-                  const prodsNoLocal = d.saldos?.filter(s => String(s.local_id) === String(loc.id)) || []
-                  const totalUnidadesLocal = prodsNoLocal.reduce((acc, curr) => acc + (curr.qtd || 0), 0)
+                  // Filtrar apenas saldos cujos produtos possuem a flag is_edicao === true
+                  const prodsNoLocalEdicoes = d.saldos?.filter(s => {
+                    if (String(s.local_id) !== String(loc.id)) return false
+                    const prod = d.edicoes?.find(e => String(e.id) === String(s.edicao_id))
+                    return prod && prod.is_edicao === true
+                  }) || []
+
+                  const totalUnidadesLocal = prodsNoLocalEdicoes.reduce((acc, curr) => acc + (curr.qtd || 0), 0)
+                  
+                  // Encontrar uma edição correspondente neste local para permitir ajuste rápido automático
+                  const primeiraEdicaoLocalId = prodsNoLocalEdicoes[0]?.edicao_id || d.edicoes?.find(e => e.is_edicao)?.id
+
                   return (
-                    <div key={loc.id} style={{ border: '1px solid #CCC', padding: '10px', borderRadius: '6px', background: '#FAF7F0' }}>
-                      <strong>{loc.nome}</strong>
-                      <div style={{ fontSize: '13px', marginTop: '4px', color: '#333' }}>Total em estoque: <strong>{totalUnidadesLocal} un</strong></div>
+                    <div key={loc.id} style={{ border: '1px solid #CCC', padding: '12px', borderRadius: '6px', background: '#FAF7F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <strong>{loc.nome}</strong>
+                        <div style={{ fontSize: '13px', marginTop: '4px', color: '#333' }}>Total em estoque (Edições): <strong>{totalUnidadesLocal} un</strong></div>
+                      </div>
+                      {primeiraEdicaoLocalId && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                          <button onClick={() => handleAjustarEstoque(String(primeiraEdicaoLocalId), String(loc.id), -1)} style={{ padding: '2px 8px', background: '#FEE2E2', border: '1px solid #000', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>-1 un</button>
+                          <button onClick={() => handleAjustarEstoque(String(primeiraEdicaoLocalId), String(loc.id), 1)} style={{ padding: '2px 8px', background: '#DCFCE7', border: '1px solid #000', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>+1 un</button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -845,20 +898,30 @@ export default function App() {
               </form>
             </div>
 
-            {/* Transferência de Estoque com Quantidade */}
+            {/* Transferência de Estoque com Quantidade e Local de Origem */}
             <div style={{ background: '#FFF', border: '2px solid #000', padding: '16px', borderRadius: '8px', marginBottom: '20px', maxWidth: '850px', boxShadow: '2px 2px 0 #000' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>Transferir Produto/Estoque para Outro Responsável</h3>
               {transfMsg && <div style={{ padding: '8px', background: '#DCFCE7', color: '#166534', borderRadius: '4px', marginBottom: '10px', fontSize: '13px' }}>{transfMsg}</div>}
 
-              <form onSubmit={handleTransferirEstoque} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
+              <form onSubmit={handleTransferirEstoque} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
-                  Selecione o Produto
+                  Produto
                   <select value={transfEdicaoId} onChange={e => setTransfEdicaoId(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
                     <option value="">Selecione...</option>
                     {d.edicoes?.map(e => {
                       const dono = d.pessoas?.find(p => String(p.id) === String(e.proprietario_id))?.nome || 'Coletivo (Encrenca)'
-                      return <option key={e.id} value={e.id}>{e.titulo} (Atual: {dono})</option>
+                      return <option key={e.id} value={e.id}>{e.titulo} (Dono: {dono})</option>
                     })}
+                  </select>
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
+                  Retirar do Local
+                  <select value={transfOrigemLocalId} onChange={e => setTransfOrigemLocalId(e.target.value)} style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }}>
+                    <option value="">Local Padrão / Central</option>
+                    {d.locais?.map(l => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
                   </select>
                 </label>
 
@@ -873,11 +936,11 @@ export default function App() {
                 </label>
 
                 <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
-                  Qtd a Transferir
+                  Qtd
                   <input type="number" min="1" value={transfQtd} onChange={e => setTransfQtd(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
                 </label>
 
-                <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '9px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>
+                <button type="submit" style={{ background: '#C5FF27', border: '2px solid #000', padding: '9px 14px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>
                   Transferir
                 </button>
               </form>
