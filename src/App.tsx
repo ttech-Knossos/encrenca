@@ -283,28 +283,33 @@ export default function App() {
     }
   }
 
+  // TELA DE LOGIN COM IDENTIDADE VISUAL
   if (!session) {
     return (
-      <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', background: '#FAF7F0', minHeight: '100vh' }}>
-        <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '24px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '8px' }}>
-            <div style={{ width: '32px', height: '32px', background: '#C5FF27', border: '2px solid #000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900' }}>⚡</div>
-            <h2 style={{ textAlign: 'center', margin: 0 }}>DESENCRENCA</h2>
+      <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', background: '#FAF7F0', minHeight: '100vh', alignItems: 'center', fontFamily: 'sans-serif' }}>
+        <style>{`
+          * { box-sizing: border-box; }
+          input:focus { outline: 2px solid #8A41F6; }
+        `}</style>
+        <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', border: '2px solid #000', padding: '28px', borderRadius: '12px', boxShadow: '4px 4px 0 #000' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
+            <img src="/logo_3.png" alt="Logo" style={{ width: '38px', height: '38px', borderRadius: '6px', border: '2px solid #000', objectFit: 'cover', background: '#C5FF27' }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+            <h2 style={{ textAlign: 'center', margin: 0, fontWeight: '900', letterSpacing: '1px' }}>DESENCRENCA</h2>
           </div>
-          <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '20px' }}>Acesse com e-mail e senha</p>
+          <p style={{ textAlign: 'center', fontSize: '13px', color: '#666', marginBottom: '24px' }}>Acesse com e-mail e senha</p>
           
-          {loginErro && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px', borderRadius: '6px', fontSize: '13px', marginBottom: '12px' }}>{loginErro}</div>}
+          {loginErro && <div style={{ background: '#fee2e2', color: '#991b1b', padding: '10px', borderRadius: '6px', fontSize: '13px', marginBottom: '14px', border: '1px solid #f87171', fontWeight: 'bold' }}>{loginErro}</div>}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
               E-mail
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '10px', border: '2px solid #000', borderRadius: '6px', background: '#FAF7F0' }} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 'bold', fontSize: '13px' }}>
               Senha
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '8px', border: '2px solid #000', borderRadius: '6px' }} />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '10px', border: '2px solid #000', borderRadius: '6px', background: '#FAF7F0' }} />
             </label>
-            <button type="submit" disabled={carregandoLogin} style={{ background: '#C5FF27', border: '2px solid #000', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '2px 2px 0 #000' }}>
+            <button type="submit" disabled={carregandoLogin} style={{ background: '#C5FF27', border: '2px solid #000', padding: '12px', borderRadius: '6px', fontWeight: '900', cursor: 'pointer', boxShadow: '2px 2px 0 #000', marginTop: '6px' }}>
               {carregandoLogin ? 'Entrando…' : 'Entrar'}
             </button>
           </form>
