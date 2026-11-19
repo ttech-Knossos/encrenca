@@ -42,18 +42,9 @@ function Shell() {
   const [aba, setAba] = useState<'geral' | 'venda' | 'vendas' | 'repasse' | 'estoque' | 'cadastros'>('geral')
   const [d, setD] = useState<Dados>({}); const [erro, setErro] = useState('')
   async function carregar() {
-    const q = async (t: string) => { 
-      const r = await supabase!.from(t).select('*')
-      if (r.error) {
-        console.error(`Erro ao carregar tabela ${t}:`, r.error)
-        return []
-      }
-      return (r.data as Row[]) ?? []
-    }
+    const q = async (t: string) => { const r = await supabase!.from(t).select('*'); if (r.error) throw r.error; return r.data as Row[] }
     try {
-      const [pessoas, edicoes, locais, saldos, fin, eventos] = await Promise.all([
-        'pessoas', 'edicoes', 'locais', 'v_saldos', 'v_financeiro_pessoa', 'eventos'
-      ].map(q))
+      const [pessoas, edicoes, locais, saldos, fin, eventos] = await Promise.all(['pessoas', 'edicoes', 'locais', 'v_saldos', 'v_financeiro_pessoa', 'eventos'].map(q))
       setD({ pessoas, edicoes, locais, saldos, fin, eventos }); setErro('')
     } catch (e: any) { setErro('Erro ao carregar dados: ' + e.message) }
   }
