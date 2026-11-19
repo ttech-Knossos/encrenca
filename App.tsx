@@ -41,6 +41,7 @@ function Login() {
 function Shell() {
   const [aba, setAba] = useState<'geral' | 'venda' | 'vendas' | 'repasse' | 'estoque' | 'cadastros'>('geral')
   const [d, setD] = useState<Dados>({}); const [erro, setErro] = useState('')
+  
   async function carregar() {
     const q = async (t: string) => { const r = await supabase!.from(t).select('*'); if (r.error) throw r.error; return r.data as Row[] }
     try {
@@ -48,7 +49,13 @@ function Shell() {
       setD({ pessoas, edicoes, locais, saldos, fin, eventos }); setErro('')
     } catch (e: any) { setErro('Erro ao carregar dados: ' + e.message) }
   }
-  useEffect(() => { carregar() }, [])
+  
+  useEffect(() => { 
+    let ativo = true
+    if (ativo) carregar()
+    return () => { ativo = false }
+  }, [])
+
   const nome = (lista: string, id: string) => { const x = d[lista]?.find(r => r.id === id); return x?.nome ?? x?.titulo ?? '—' }
   const rot = { geral: 'Visão geral', venda: 'Registrar venda', vendas: 'Vendas', repasse: 'Registrar repasse', estoque: 'Estoque', cadastros: 'Cadastros' }
   return <>
